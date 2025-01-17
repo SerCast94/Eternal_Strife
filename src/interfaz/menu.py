@@ -4,6 +4,7 @@ import sys
 from pygame.locals import *
 from PIL import Image
 import os
+from score import show_high_scores
 
 # Initialize Pygame
 pygame.init()
@@ -32,7 +33,7 @@ for frame in range(gif.n_frames):
 
     # Calculate the position to center the image
     x_pos = (SCREEN_WIDTH - 300) // 2
-    y_pos = (SCREEN_HEIGHT - 330) // 2
+    y_pos = (SCREEN_HEIGHT - 300) // 2
 
     # Append the frame with the calculated position
     frames.append((frame_surface, (x_pos, y_pos)))
@@ -102,8 +103,7 @@ while running:
             print("Iniciar Juego")
             # Add code to start the game
         if high_scores_button.click(event):
-            print("Puntuaciones")
-            # Add code to show high scores
+            show_high_scores(screen)  # Call the function to show high scores
         if exit_button.click(event):
             pygame.quit()
             sys.exit()

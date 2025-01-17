@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<scores>
+    <score>
+        <name>Player1</name>
+        <time>10:00</time>
+        <score_value>1500</score_value>
+        <enemies_defeated>30</enemies_defeated>
+    </score>
+    <score>
+        <name>Player2</name>
+        <time>12:30</time>
+        <score_value>2000</score_value>
+        <enemies_defeated>45</enemies_defeated>
+    </score>
+    <score>
+        <name>Player3</name>
+        <time>08:45</time>
+        <score_value>1200</score_value>
+        <enemies_defeated>25</enemies_defeated>
+    </score>
+</scores>
