@@ -1,0 +1,27 @@
+# Archivos y carpetas de Python
+*.pyc
+*.pyo
+__pycache__/
+*.log
+
+# Entornos virtuales
+venv/
+.env/
+.venv/
+*.env
+
+# Configuración de IDEs
+.vscode/
+.idea/
+
+# Sistema operativo
+.DS_Store
+Thumbs.db
+
+# Archivos temporales
+*.tmp
+*.swp
+*.bak
+*.~*
+*.old
+*.log
