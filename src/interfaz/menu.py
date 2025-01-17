@@ -32,11 +32,19 @@ for frame in range(gif.n_frames):
 
     # Calculate the position to center the image
     x_pos = (SCREEN_WIDTH - 300) // 2
-    y_pos = (SCREEN_HEIGHT - 350) // 2
+    y_pos = (SCREEN_HEIGHT - 330) // 2
 
     # Append the frame with the calculated position
     frames.append((frame_surface, (x_pos, y_pos)))
-    
+
+# Load the title image
+title_image = pygame.image.load('assets/images/titulo.png')
+title_image = pygame.transform.scale(title_image, (400, 250))  # Adjust size as needed
+
+# Calculate the position to center the title image
+title_x_pos = (SCREEN_WIDTH - 400) // 2
+title_y_pos = -50  # Adjust the y position as needed
+
 # Generate stars
 num_stars = 100
 stars = []
@@ -45,7 +53,7 @@ for _ in range(num_stars):
     y = random.randint(0, SCREEN_HEIGHT)
     radius = random.randint(1, 3)
     stars.append([x, y, radius, random.randint(0, 255)])
-    
+
 # Button class
 class Button:
     def __init__(self, text, pos, font, bg="black", feedback=""):
@@ -70,7 +78,7 @@ class Button:
 
     def click(self, event):
         x, y = pygame.mouse.get_pos()
-        if event.type == MOUSEBUTTONDOWN:
+        if event.type == pygame.MOUSEBUTTONDOWN:
             if pygame.mouse.get_pressed()[0]:
                 if self.rect.collidepoint(x, y):
                     return True
@@ -110,6 +118,9 @@ while running:
     frame_surface, pos = frames[frame_index]
     screen.blit(frame_surface, pos)
     frame_index = (frame_index + 1) % len(frames)
+
+    # Draw the title image
+    screen.blit(title_image, (title_x_pos, title_y_pos))
 
     # Draw buttons
     start_button.show()

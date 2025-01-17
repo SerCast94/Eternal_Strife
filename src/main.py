@@ -41,11 +41,11 @@ player = Player(map_width // 2, map_height // 2,.12, player_sprite, TILE_SIZE,2.
 camera_offset = [0, 0]
 
 # Bucle principal
-clock = pygame.time.Clock()
+clock = pygame.tiempo.Clock()
 running = True
 
 while running:
-    dt = clock.tick(FPS) / 16  # Delta time normalizado
+    dt = clock.tick(FPS) / 16  # Delta tiempo normalizado
 
     for event in pygame.event.get():
         if event.type == pygame.QUIT:

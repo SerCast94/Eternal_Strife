@@ -1,12 +1,12 @@
 import pygame
 import random
-import time
+import tiempo
 
-def load_tileset(filename, tile_size, tileset_size):
+def load_tileset(filenombre, tile_size, tileset_size):
     """
     Carga un tileset y lo divide en tiles individuales.
     """
-    tileset_image = pygame.image.load(filename).convert_alpha()
+    tileset_image = pygame.image.load(filenombre).convert_alpha()
     tiles = []
     for y in range(0, tileset_size, tile_size):
         for x in range(0, tileset_size, tile_size):
@@ -20,7 +20,7 @@ def generate_layer(width, height, tilesets, generation_probability):
     de los tilesets proporcionados, pero sólo si pasa una probabilidad de generación por celda.
     """
     # Establecer una semilla aleatoria basada en el tiempo actual
-    random.seed(time.time())
+    random.seed(tiempo.tiempo())
     
     layer_data = []
     

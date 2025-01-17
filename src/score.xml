@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<puntuaciones>
+    <score>
+        <nombre>Player1</nombre>
+        <tiempo>10:00</tiempo>
+        <puntos>1500</puntos>
+        <enemigos>30</enemigos>
+    </score>
+    <score>
+        <nombre>Player2</nombre>
+        <tiempo>12:30</tiempo>
+        <puntos>2000</puntos>
+        <enemigos>45</enemigos>
+    </score>
+    <score>
+        <nombre>Player3</nombre>
+        <tiempo>08:45</tiempo>
+        <puntos>1200</puntos>
+        <enemigos>25</enemigos>
+    </score>
+</scores>

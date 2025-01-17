@@ -41,7 +41,7 @@ class Player:
         """
         Mueve al jugador según la entrada del usuario.
         :param keys: Teclas presionadas.
-        :param dt: Delta time para movimiento suave.
+        :param dt: Delta tiempo para movimiento suave.
         """
         currenty = self.y
         currentx = self.x
