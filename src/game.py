@@ -1,3 +1,4 @@
+import random
 import pygame
 import sys
 import math
@@ -63,12 +64,27 @@ class Game:
 
     def show_loading_screen(self):
         try:
-            loading_font = pygame.font.SysFont(None, 48)
-            log_font = pygame.font.SysFont(None, 24)
+            loading_font = pygame.font.SysFont("assets/fonts/EldringBold.ttf", 48)
+            log_font = pygame.font.SysFont("assets/fonts/EldringBold.ttf", 24)
             loading_text = loading_font.render("Cargando...", True, (255, 255, 255))
+
+            # Generate stars
+            num_stars = 100
+            stars = []
+            for _ in range(num_stars):
+                x = random.randint(0, self.settings.screen_width)
+                y = random.randint(0, self.settings.screen_height)
+                radius = random.randint(1, 3)
+                stars.append([x, y, radius, random.randint(0, 255)])
+
+            # Draw the background (stars)
             self.screen.fill((0, 0, 0))
+            for star in stars:
+                star[3] = (star[3] + random.randint(-5, 5)) % 256
+                pygame.draw.circle(self.screen, (star[3], star[3], star[3]), (star[0], star[1]), star[2])
+
             self.screen.blit(loading_text, (self.settings.screen_width // 2 - loading_text.get_width() // 2,
-                                            self.settings.screen_height // 2 - loading_text.get_height() // 2))
+                                            self.settings.screen_height // 2 - loading_text.get_height() // 2 + 200))
             
             # Mostrar log
             log_y = self.settings.screen_height // 2 + loading_text.get_height()
