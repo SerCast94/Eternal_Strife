@@ -36,19 +36,19 @@ def read_scores_xml(file_path):
         scores.append({
             "name": name,
             "time": time,
-            "score": score_value,
+            "score_value": score_value,
             "enemies_defeated": enemies_defeated
         })
 
     # Sort scores by score_value in descending order
-    scores.sort(key=lambda x: x["score"], reverse=True)
+    scores.sort(key=lambda x: x["score_value"], reverse=True)
     return scores
 
 # Button class
 class Button:
     def __init__(self, text, pos, font, bg="black", feedback=""):
         self.x, self.y = pos
-        self.font = pygame.font.Font(font, 40)
+        self.font = pygame.font.Font("assets/fonts/EldringBold.ttf", 40)
         if feedback == "":
             self.feedback = "text"
         else:
@@ -79,7 +79,7 @@ def show_high_scores(screen):
     scores = read_scores_xml("assets/score.xml")
 
     # Create the "Back" button
-    back_button = Button("Atrás", (50, 500), None)
+    back_button = Button("Volver", (50, 520), None)
 
     # Main loop
     running = True
@@ -99,18 +99,31 @@ def show_high_scores(screen):
             pygame.draw.circle(screen, (star[3], star[3], star[3]), (star[0], star[1]), star[2])
 
         # Draw the header
-        font = pygame.font.Font(None, 74)
-        header_text = font.render("Puntuaciones", True, WHITE)
+        font = pygame.font.Font("assets/fonts/EldringBold.ttf", 60)
+        header_text = font.render("PUNTUACIONES", True, WHITE)
         header_rect = header_text.get_rect(center=(SCREEN_WIDTH // 2, 50))
         screen.blit(header_text, header_rect)
 
-        # Draw the scores
-        font = pygame.font.Font(None, 36)
-        y_offset = 150
-        for score in scores:
-            text = f"Name: {score['name']}, Time: {score['time']}, Score: {score['score']}, Enemies Defeated: {score['enemies_defeated']}"
-            text_surface = font.render(text, True, WHITE)
-            screen.blit(text_surface, (50, y_offset))
+        # Draw the table headers
+        font = pygame.font.Font("assets/fonts/EldringBold.ttf", 25)
+        headers = ["Nombre", "Tiempo", "Puntos", "Bajas"]
+        header_x_positions = [170, 320, 470, 620]
+        for i, header in enumerate(headers):
+            header_surface = font.render(header, True, WHITE)
+            header_rect = header_surface.get_rect(center=(header_x_positions[i], 120))
+            screen.blit(header_surface, header_rect.topleft)
+
+        # Sort scores by score_value and take the top 9
+        sorted_scores = sorted(scores, key=lambda x: int(x['score_value']), reverse=True)[:9]
+
+        # Draw the scores in table format
+        y_offset = 175
+        for score in sorted_scores:
+            score_values = [score['name'], score['time'], str(score['score_value']), str(score['enemies_defeated'])]
+            for i, value in enumerate(score_values):
+                text_surface = font.render(value, True, WHITE)
+                text_rect = text_surface.get_rect(center=(header_x_positions[i], y_offset))
+                screen.blit(text_surface, text_rect.topleft)
             y_offset += 40
 
         # Draw the "Back" button
