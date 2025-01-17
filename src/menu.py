@@ -5,6 +5,7 @@ from pygame.locals import *
 from PIL import Image
 import os
 from score import show_high_scores
+from game import iniciarPartida
 
 # Initialize Pygame
 pygame.init()
@@ -90,6 +91,11 @@ start_button = Button("Iniciar Juego", (260, 440), None)
 high_scores_button = Button("Puntuaciones", (250, 495), None)
 exit_button = Button("Salir", (345, 550), None)
 
+# Variables para controlar el GIF
+frame_index = 0
+frame_delay = 70  # Tiempo en milisegundos entre frames
+last_frame_time = pygame.time.get_ticks()  # Tiempo inicial
+
 # Main loop
 running = True
 frame_index = 0
@@ -101,6 +107,7 @@ while running:
             sys.exit()
         if start_button.click(event):
             print("Iniciar Juego")
+            iniciarPartida(screen)
             # Add code to start the game
         if high_scores_button.click(event):
             show_high_scores(screen)  # Call the function to show high scores
@@ -111,13 +118,28 @@ while running:
     # Draw the background (stars)
     screen.fill(BLACK)
     for star in stars:
-        star[3] = (star[3] + random.randint(-5, 5)) % 256
+         # Cambiar la posición horizontal para mover la estrella a la izquierda
+        star[0] -= 0.1  # Cambia el valor 2 por la velocidad deseada
+        # Hacer que las estrellas reaparezcan al otro lado si salen de la pantalla
+        if star[0] < 0:
+            star[0] = screen.get_width()  # Reaparece en el lado derecho
+        # Actualizar el brillo
+        star[3] = (star[3] + random.randint(-1, 1)) % 256
+        # Dibujar la estrella en la nueva posición
         pygame.draw.circle(screen, (star[3], star[3], star[3]), (star[0], star[1]), star[2])
+    
 
-    # Draw the planet (GIF)
+    # Dentro del bucle principal del juego
+    current_time = pygame.time.get_ticks()
+
+    # Verificar si ha pasado suficiente tiempo para cambiar el frame
+    if current_time - last_frame_time >= frame_delay:
+        frame_index = (frame_index + 1) % len(frames)  # Siguiente frame
+        last_frame_time = current_time  # Actualizar el tiempo del último frame
+
+    # Dibujar el frame actual del planeta (GIF)
     frame_surface, pos = frames[frame_index]
     screen.blit(frame_surface, pos)
-    frame_index = (frame_index + 1) % len(frames)
 
     # Draw the title image
     screen.blit(title_image, (title_x_pos, title_y_pos))
@@ -128,4 +150,4 @@ while running:
     exit_button.show()
 
     pygame.display.update()
-    clock.tick(10)  # Adjust the frame rate as needed
+    clock.tick(60)  # Adjust the frame rate as needed

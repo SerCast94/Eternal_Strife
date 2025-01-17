@@ -189,8 +189,9 @@ class Game:
             pygame.quit()
             print("Pygame cerrado correctamente")
 
-if __name__ == "__main__":
+def iniciarPartida(screen):
     print("Iniciando el juego...")
     game = Game()
+    game.screen = screen
     game.run()
     print("Juego terminado")
