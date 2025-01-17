@@ -98,7 +98,6 @@ class Settings:
                         "tile_size": 16,
                         "columns": 8,
                         "rows": 8,
-                        "tiles": [0, 1, 2,3,4,5,6,7,8,9]
                     }
                 ]
             }

@@ -1,7 +1,7 @@
 import pygame
 import random
 import math
-
+#enemy manager
 class EnemyManager:
     def __init__(self, settings, player):
         self.settings = settings

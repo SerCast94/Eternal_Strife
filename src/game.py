@@ -1,85 +1,196 @@
 import pygame
-from settings import SCREEN_WIDTH, SCREEN_HEIGHT, TILE_SIZE, FPS
-from map import load_tileset, generate_layer, draw_layers
+import sys
+import math
+import io
+import contextlib
+from game_state import GameState
+from settings import Settings
 from player import Player
+from tilemap import TileMap
+from enemy_manager import EnemyManager
+from ui_manager import UIManager
 
-# Inicialización de Pygame
-pygame.init()
-screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
-pygame.display.set_caption("Juego con Capas y Personaje Jugable")
+class Game:
+    def __init__(self):
+        try:
+            print("Inicializando Pygame...")
+            pygame.init()
+            self.settings = Settings()
+            self.screen = pygame.display.set_mode(
+                (self.settings.screen_width, self.settings.screen_height))
+            pygame.display.set_caption("Eternal Strife")
+            self.clock = pygame.time.Clock()
+            
+            # Superficie de renderizado intermedia
+            self.render_surface = pygame.Surface(
+                (self.settings.screen_width, self.settings.screen_height))
 
-# Cargar tilesets para diferentes capas
-tileset_base = load_tileset("assets/images/tileset_base.png", TILE_SIZE, 128)  # Tileset para fondo (ej: césped)
-tileset_decor = load_tileset("assets/images/tileset_decor.png", TILE_SIZE, 128)  # Tileset para props (ej: árboles)
-tileset_decorHorizontal = load_tileset("assets/images/tileset_horizontalPath.png", TILE_SIZE, 128)  # Tileset para decoraciones
-tileset_decorVertical = load_tileset("assets/images/tileset_verticalPath.png", TILE_SIZE, 128)  # Tileset para decoraciones
+            # Mostrar pantalla de carga
+            self.log_output = []
+            self.show_loading_screen()
 
-# Definir la probabilidad de generación por capa
-probabilidad_base = 1.0  # 100% (siempre genera un tile)
-probabilidad_props = 0.1  # 10% (genera raramente)
-probabilidad_decor = 0.1  # 1% (genera algo más raramente)
+            # Inicializar componentes del juego
+            self.log("Inicializando GameState...")
+            self.game_state = GameState()
+            self.log("GameState inicializado")
 
-# Dimensiones del mapa en tiles
-map_width = 100
-map_height = 100
+            self.log("Inicializando TileMap...")
+            self.tilemap = TileMap(self.settings)
+            self.log("TileMap inicializado")
 
-# Generar capas con probabilidades específicas
-base_layer = generate_layer(map_width, map_height, [tileset_base,tileset_base, tileset_decor], probabilidad_base)  # Capa base (fondo)
-decor_layer = generate_layer(map_width, map_height, [tileset_decorHorizontal, tileset_decorVertical], probabilidad_decor)  # Capa de decoraciones
+            self.log("Inicializando Player...")
+            self.player = Player(self.settings)
+            self.log("Player inicializado")
 
-# Agrupar capas con sus tilesets y datos
-layers = [
-    {'tilesets': [tileset_base], 'layer_data': base_layer},
-    {'tilesets': [tileset_decorHorizontal, tileset_decorVertical], 'layer_data': decor_layer}
-]
+            self.log("Inicializando EnemyManager...")
+            self.enemy_manager = EnemyManager(self.settings, self.player)
+            self.log("EnemyManager inicializado")
 
-# Inicializar al jugador
-player_sprite = "assets/images/player.png" 
-player = Player(map_width // 2, map_height // 2,.12, player_sprite, TILE_SIZE,2.2)  # Empieza en el centro del mapa.
+            self.log("Inicializando UIManager...")
+            self.ui_manager = UIManager(self.settings)
+            self.log("UIManager inicializado")
 
-# Desplazamiento de la cámara
-camera_offset = [0, 0]
+            self.log("Juego inicializado correctamente")
+        except Exception as e:
+            self.log(f"Error durante la inicialización: {e}")
+            pygame.quit()
+            sys.exit(1)
 
-# Bucle principal
-clock = pygame.tiempo.Clock()
-running = True
+    def log(self, message):
+        print(message)
+        self.log_output.append(message)
+        self.show_loading_screen()
 
-while running:
-    dt = clock.tick(FPS) / 16  # Delta tiempo normalizado
+    def show_loading_screen(self):
+        try:
+            loading_font = pygame.font.SysFont(None, 48)
+            log_font = pygame.font.SysFont(None, 24)
+            loading_text = loading_font.render("Cargando...", True, (255, 255, 255))
+            self.screen.fill((0, 0, 0))
+            self.screen.blit(loading_text, (self.settings.screen_width // 2 - loading_text.get_width() // 2,
+                                            self.settings.screen_height // 2 - loading_text.get_height() // 2))
+            
+            # Mostrar log
+            log_y = self.settings.screen_height // 2 + loading_text.get_height()
+            for log_message in self.log_output[-10:]:  # Mostrar solo los últimos 10 mensajes
+                log_text = log_font.render(log_message, True, (255, 255, 255))
+                self.screen.blit(log_text, (10, log_y))
+                log_y += log_text.get_height() + 5
+            
+            pygame.display.flip()
+        except Exception as e:
+            print(f"Error mostrando la pantalla de carga: {e}")
 
-    for event in pygame.event.get():
-        if event.type == pygame.QUIT:
-            running = False
+    def handle_events(self):
+        try:
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    print("Evento de salida detectado")
+                    return False
+                if event.type == pygame.KEYDOWN and event.key == pygame.K_r:
+                    print("Reiniciando juego...")
+                    self.restart_game()
+                self.player.handle_input(event)
+            return True
+        except Exception as e:
+            print(f"Error manejando eventos: {e}")
+            return False
 
-    # Manejar entrada del jugador
-    keys = pygame.key.get_pressed()
-    player.move(keys, dt)
+    def restart_game(self):
+        try:
+            print("Reiniciando componentes del juego...")
+            # Mostrar pantalla de carga
+            self.log_output = []
+            self.show_loading_screen()
+            
+            # Regenerar el mapa
+            self.log("Regenerando el mapa...")
+            self.tilemap = TileMap(self.settings)
+            self.log("Mapa regenerado")
+            
+            # Reiniciar jugador
+            self.log("Reiniciando jugador...")
+            self.player = Player(self.settings)
+            self.log("Jugador reiniciado")
+            
+            # Reiniciar enemigos
+            self.log("Reiniciando enemigos...")
+            self.enemy_manager = EnemyManager(self.settings, self.player)
+            self.log("Enemigos reiniciados")
+            
+            # Reiniciar estado del juego
+            self.log("Reiniciando estado del juego...")
+            self.game_state = GameState()
+            self.log("Estado del juego reiniciado")
+            self.log("Juego reiniciado")
+        except Exception as e:
+            self.log(f"Error reiniciando el juego: {e}")
 
-    # Actualizar el desplazamiento de la cámara
-    camera_offset[0] = player.x * TILE_SIZE - SCREEN_WIDTH // 2
-    camera_offset[1] = player.y * TILE_SIZE - SCREEN_HEIGHT // 2
+    def update(self):
+        try:
+            if not self.game_state.is_game_over:
+                delta_time = self.clock.get_time() / 1000.0
+                
+                # Actualizar componentes
+                self.player.update(delta_time, self.tilemap)
+                self.enemy_manager.update(delta_time, self.tilemap)
+                self.game_state.update(delta_time)
+                
+                # Actualizar la cámara para seguir al jugador
+                self.tilemap.update_camera(self.player.position.x, self.player.position.y)
+                
+                # Comprobar condición de game over
+                if self.player.health <= 0:
+                    self.game_state.is_game_over = True
+                    print("Game Over")
+        except Exception as e:
+            print(f"Error actualizando el juego: {e}")
 
-    # Dibujar el mapa con desplazamiento de cámara
-    screen.fill((0, 0, 0))  # Fondo negro
-    # for layer in layers:
-    #     layer_data = layer['layer_data']
-    #     for row_idx, row in enumerate(layer_data):
-    #         for col_idx, tile in enumerate(row):
-    #             if tile is not None:
-    #                 tileset, tile_idx = tile
-    #                 screen.blit(
-    #                     tileset[tile_idx],
-    #                     (
-    #                         col_idx * TILE_SIZE - camera_offset[0],
-    #                         row_idx * TILE_SIZE - camera_offset[1],
-    #                     ),
-    #                 )
-    
-    draw_layers(screen, layers, TILE_SIZE, camera_offset, SCREEN_WIDTH, SCREEN_HEIGHT,1.3)
+    def render(self):
+        try:
+            self.render_surface.fill((0, 0, 0))
+            
+            # Dibujar el mapa
+            self.tilemap.draw(self.render_surface)
+            
+            # Dibujar entidades
+            self.player.draw(self.render_surface, self.tilemap.camera_x, self.tilemap.camera_y)
+            self.enemy_manager.draw(self.render_surface, self.tilemap.camera_x, self.tilemap.camera_y)
+            
+            # Escalar la superficie de renderizado según el factor de zoom
+            zoomed_surface = pygame.transform.scale(
+                self.render_surface, 
+                (int(self.settings.screen_width * self.settings.zoom), 
+                 int(self.settings.screen_height * self.settings.zoom))
+            )
+            
+            # Dibujar la superficie escalada en la pantalla
+            self.screen.blit(zoomed_surface, (0, 0))
+            
+            # Dibujar UI sin aplicar zoom
+            self.ui_manager.draw(self.screen, self.player, self.game_state)
+            
+            pygame.display.flip()
+        except Exception as e:
+            print(f"Error renderizando el juego: {e}")
 
-    # Dibujar al jugador
-    player.draw(screen, SCREEN_WIDTH, SCREEN_HEIGHT)
+    def run(self):
+        running = True
+        try:
+            while running:
+                running = self.handle_events()
+                self.update()
+                self.render()
+                self.clock.tick(self.settings.FPS)
+                # print("Frame actualizado")
+        except Exception as e:
+            print(f"Se produjo un error: {e}")
+        finally:
+            pygame.quit()
+            print("Pygame cerrado correctamente")
 
-    pygame.display.flip()
-
-pygame.quit()
+if __name__ == "__main__":
+    print("Iniciando el juego...")
+    game = Game()
+    game.run()
+    print("Juego terminado")

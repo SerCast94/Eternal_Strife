@@ -1,5 +1,5 @@
 import pygame
-
+#Ui_manager
 class UIManager:
     def __init__(self, settings):
         self.settings = settings

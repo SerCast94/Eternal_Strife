@@ -1,5 +1,5 @@
 import pygame
-
+#Player
 class Player:
     def __init__(self, settings):
         self.settings = settings
