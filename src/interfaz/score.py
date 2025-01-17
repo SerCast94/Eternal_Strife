@@ -5,7 +5,6 @@ import xml.etree.ElementTree as ET
 from pygame.locals import *
 
 # Initialize Pygame
-pygame.init()
 
 SCREEN_WIDTH = 800
 SCREEN_HEIGHT = 600

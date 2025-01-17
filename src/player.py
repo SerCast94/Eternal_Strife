@@ -1,58 +1,67 @@
 import pygame
 
 class Player:
+    def __init__(self, settings):
+        self.settings = settings
+        self.position = pygame.Vector2(
+            settings.map_width * settings.tile_size // 2,
+            settings.map_height * settings.tile_size // 2
+        )
+        self.velocity = pygame.Vector2()
+        self.health = settings.player_health
+        self.rect = pygame.Rect(
+            self.position.x,
+            self.position.y,
+            settings.player_size[0],
+            settings.player_size[1]
+        )
 
-    def __init__(self, x, y,speed, sprite_path, base_size, scale=1.0):
-        """
-        Inicializa al jugador.
-        :param x: Posición X inicial (en tiles).
-        :param y: Posición Y inicial (en tiles).
-        :param sprite_path: Ruta al sprite del jugador.
-        :param base_size: Tamaño base del sprite.
-        :param scale: Factor de escala para el jugador.
-        """
-        self.x = x
-        self.y = y
-        self.base_size = base_size
-        self.scale = scale
-        self.speed = speed
+    def handle_input(self, event):
+        if event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_w:
+                self.velocity.y = -1
+            elif event.key == pygame.K_s:
+                self.velocity.y = 1
+            elif event.key == pygame.K_a:
+                self.velocity.x = -1
+            elif event.key == pygame.K_d:
+                self.velocity.x = 1
+        elif event.type == pygame.KEYUP:
+            if event.key in (pygame.K_w, pygame.K_s):
+                self.velocity.y = 0
+            elif event.key in (pygame.K_a, pygame.K_d):
+                self.velocity.x = 0
 
-        # Cargar y escalar el sprite
-        self.sprite = pygame.image.load(sprite_path).convert_alpha()
-        self.update_sprite()
+    def update(self, delta_time, tilemap):
+        if self.velocity.length() > 0:
+            self.velocity = self.velocity.normalize()
 
-    def update_sprite(self):
-        """Actualiza el tamaño del sprite según el factor de escala."""
-        self.scaled_size = int(self.base_size * self.scale)
-        self.sprite = pygame.transform.scale(self.sprite, (self.scaled_size, self.scaled_size))
+        # Guardar posición anterior
+        old_position = self.position.copy()
 
-    def draw(self, screen, screen_width, screen_height):
-        """
-        Dibuja al jugador en el centro de la pantalla.
-        :param screen: Superficie de pygame.
-        :param screen_width: Ancho de la pantalla.
-        :param screen_height: Alto de la pantalla.
-        """
-        player_x = (screen_width // 2) - (self.scaled_size // 2)
-        player_y = (screen_height // 2) - (self.scaled_size // 2)
-        screen.blit(self.sprite, (player_x, player_y))
+        # Actualizar posición
+        self.position += self.velocity * self.settings.player_speed * delta_time
+        self.rect.x = self.position.x
+        self.rect.y = self.position.y
 
-    def move(self, keys, dt):
-        """
-        Mueve al jugador según la entrada del usuario.
-        :param keys: Teclas presionadas.
-        :param dt: Delta tiempo para movimiento suave.
-        """
-        currenty = self.y
-        currentx = self.x
-        if keys[pygame.K_w]:  # Arriba
-            currenty -= self.speed * dt
-        if keys[pygame.K_s]:  # Abajo
-            currenty += self.speed * dt
-        if keys[pygame.K_a]:  # Izquierda
-            currentx -= self.speed * dt
-        if keys[pygame.K_d]:  # Derecha
-            currentx += self.speed * dt
-        
-        self.y = currenty
-        self.x = currentx
+        # Comprobar colisiones
+        if tilemap.check_collision(self.rect):
+            self.position = old_position
+            self.rect.x = self.position.x
+            self.rect.y = self.position.y
+
+        # Mantener al jugador dentro de los límites del mapa
+        self.position.x = max(0, min(self.position.x,
+            self.settings.map_width * self.settings.tile_size - self.settings.player_size[0]))
+        self.position.y = max(0, min(self.position.y,
+            self.settings.map_height * self.settings.tile_size - self.settings.player_size[1]))
+
+    def draw(self, screen, camera_x, camera_y):
+        pygame.draw.rect(screen, (0, 255, 0),
+            pygame.Rect(
+                self.position.x - camera_x,
+                self.position.y - camera_y,
+                self.settings.player_size[0],
+                self.settings.player_size[1]
+            )
+        )
