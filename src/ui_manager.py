@@ -1,11 +1,11 @@
 import pygame
-#Ui_manager
+
 class UIManager:
     def __init__(self, settings):
         self.settings = settings
         self.font = pygame.font.Font(None, 36)
 
-    def draw(self, screen, player, game_state):
+    def draw(self, screen, player, game_state, enemy_manager):
         # Barra de vida
         health_bar_width = 200
         health_bar_height = 20
@@ -21,6 +21,10 @@ class UIManager:
         time_text = self.font.render(f"Time: {int(game_state.game_time)}s", True, (255, 255, 255))
         screen.blit(score_text, (10, 40))
         screen.blit(time_text, (10, 70))
+
+        # Dificultad (velocidad de aparición de enemigos)
+        difficulty_text = self.font.render(f"Dificultad: {enemy_manager.spawn_rate:.2f}", True, (255, 255, 255))
+        screen.blit(difficulty_text, (self.settings.screen_width - difficulty_text.get_width() - 10, 10))
 
         if game_state.is_game_over:
             game_over_text = self.font.render("GAME OVER", True, (255, 0, 0))

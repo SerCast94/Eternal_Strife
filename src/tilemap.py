@@ -2,7 +2,7 @@ import pygame
 import random
 from dataclasses import dataclass
 from typing import List, Dict, Optional, Tuple
-#Tilemap
+
 @dataclass
 class TilesetInfo:
     path: str

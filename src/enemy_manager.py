@@ -1,128 +1,174 @@
 import pygame
 import random
 import math
-#enemy manager
+import threading
+from enemy_types import SlimeEnemy, RangedEnemy
+
 class EnemyManager:
-    def __init__(self, settings, player):
+    def __init__(self, settings, player, animation_manager, tilemap):
         self.settings = settings
         self.player = player
+        self.animation_manager = animation_manager
+        self.tilemap = tilemap  # Almacenar tilemap
         self.enemies = []
         self.spawn_timer = 0
-        self.time_elapsed = 0  # Variable para rastrear el tiempo transcurrido
+        self.time_elapsed = 0
+        self.spawn_rate = self.settings.enemy_spawn_rate
+        self.lock = threading.Lock()
+        
+        # Spatial grid for collision optimization
+        self.cell_size = 64  # Size of each cell in the grid
+        self.grid_width = self.settings.map_width * self.settings.tile_size // self.cell_size + 1
+        self.grid_height = self.settings.map_height * self.settings.tile_size // self.cell_size + 1
+        self.spatial_grid = {}
+        
+        # Define enemy types and their spawn probabilities
+        self.enemy_types = {
+            "slime": {"class": SlimeEnemy, "weight": 0.7},
+            "ranged": {"class": RangedEnemy, "weight": 0.3}
+        }
+
+        # Thread management
+        self.num_threads = 10
+        self.threads = []
+        self.thread_events = [threading.Event() for _ in range(self.num_threads)]
+        self.thread_locks = [threading.Lock() for _ in range(self.num_threads)]
+        self.thread_enemies = [[] for _ in range(self.num_threads)]
+        self.stop_threads = False
+        self.delta_time = 0  # Almacenar delta time
+
+        for i in range(self.num_threads):
+            thread = threading.Thread(target=self.update_thread, args=(i,))
+            thread.start()
+            self.threads.append(thread)
+
+    def _get_grid_cell(self, position):
+        """Get the grid cell for a given position"""
+        return (int(position[0] // self.cell_size),
+                int(position[1] // self.cell_size))
+                
+    def _update_spatial_grid(self):
+        """Update the spatial grid with the current positions of enemies"""
+        self.spatial_grid.clear()
+        for enemy in self.enemies:
+            cell = self._get_grid_cell(enemy.rect.center)
+            if cell not in self.spatial_grid:
+                self.spatial_grid[cell] = []
+            self.spatial_grid[cell].append(enemy)
+            
+    def _get_nearby_enemies(self, position, radius):
+        """Get enemies near a position using the spatial grid"""
+        nearby = set()
+        cell_radius = int(radius // self.cell_size) + 1
+        center_cell = self._get_grid_cell(position)
+        
+        for dx in range(-cell_radius, cell_radius + 1):
+            for dy in range(-cell_radius, cell_radius + 1):
+                cell = (center_cell[0] + dx, center_cell[1] + dy)
+                if cell in self.spatial_grid:
+                    nearby.update(self.spatial_grid[cell])
+        
+        return nearby
+
+    def _is_in_view(self, enemy_pos, camera_pos):
+        """Determine if an enemy is within the visible area"""
+        dx = enemy_pos[0] - camera_pos[0]
+        dy = enemy_pos[1] - camera_pos[1]
+        return (dx * dx + dy * dy) <= (self.settings.enemy_culling_distance * self.settings.enemy_culling_distance)
+
+    def _get_random_enemy_type(self):
+        enemy_classes = list(self.enemy_types.values())
+        weights = [enemy["weight"] for enemy in enemy_classes]
+        return random.choices(enemy_classes, weights=weights, k=1)[0]["class"]
 
     def spawn_enemy(self):
-        # Calcular posición de spawn relativa al jugador
         angle = random.uniform(0, 2 * math.pi)
-        distance = 800  # Distancia de spawn
-        spawn_x = self.player.position.x + math.cos(angle) * distance
-        spawn_y = self.player.position.y + math.sin(angle) * distance
+        distance = 800
+        spawn_x = self.player.rect.x + math.cos(angle) * distance
+        spawn_y = self.player.rect.y + math.sin(angle) * distance
 
-        # Asegurar que el spawn está dentro del mapa
-        spawn_x = max(0, min(spawn_x,
+        spawn_x = max(0, min(spawn_x, 
             self.settings.map_width * self.settings.tile_size - self.settings.enemy_size[0]))
-        spawn_y = max(0, min(spawn_y,
+        spawn_y = max(0, min(spawn_y, 
             self.settings.map_height * self.settings.tile_size - self.settings.enemy_size[1]))
 
-        self.enemies.append(Enemy(self.settings, (spawn_x, spawn_y)))
+        with self.lock:
+            enemy_class = self._get_random_enemy_type()
+            enemy = enemy_class(self.settings, (spawn_x, spawn_y), self.animation_manager)
+            self.enemies.append(enemy)
+            # Assign the enemy to a thread
+            thread_index = len(self.enemies) % self.num_threads
+            self.thread_enemies[thread_index].append(enemy)
 
     def update(self, delta_time, tilemap):
-        self.time_elapsed += delta_time  # Actualizar el tiempo transcurrido
+        self.time_elapsed += delta_time
         self.spawn_timer += delta_time
+        self.spawn_rate = self.settings.enemy_spawn_rate + self.time_elapsed * 0.01
+        self.delta_time = delta_time  # Actualizar delta time
 
-        # Ajustar la tasa de aparición de enemigos en función del tiempo transcurrido
-        spawn_rate = max(0.1, self.settings.enemy_spawn_rate - self.time_elapsed * 0.01)
-
-        if self.spawn_timer >= 1.0 / spawn_rate:
+        if self.spawn_timer >= 1.0 / self.spawn_rate:
             self.spawn_enemy()
             self.spawn_timer = 0
 
-        for enemy in self.enemies[:]:
-            direction = pygame.Vector2(self.player.position - enemy.position)
-            if direction.length() > 0:
-                direction = direction.normalize()
+        with self.lock:
+            # Update spatial grid
+            self._update_spatial_grid()
             
-            # Guardar posición anterior
-            old_position = enemy.position.copy()
+            # Center of the camera for culling
+            camera_center = (
+                self.player.rect.centerx,
+                self.player.rect.centery
+            )
             
-            # Intentar mover al enemigo en la dirección del jugador
-            enemy.position += direction * self.settings.enemy_speed * delta_time
-            enemy.rect.x = enemy.position.x
-            enemy.rect.y = enemy.position.y
-            
-            # Comprobar colisiones con el mapa
-            if tilemap.check_collision(enemy.rect):
-                enemy.position = old_position
-                enemy.rect.x = enemy.position.x
-                enemy.rect.y = enemy.position.y
-                direction = self.avoid_collisions(enemy, direction, tilemap)
-                enemy.position += direction * self.settings.enemy_speed * delta_time
-                enemy.rect.x = enemy.position.x
-                enemy.rect.y = enemy.position.y
-            
-            # Comprobar distancia mínima con otros enemigos
-            for other_enemy in self.enemies:
-                if other_enemy != enemy:
-                    distance = enemy.position.distance_to(other_enemy.position)
-                    min_distance = self.settings.enemy_size[0]  # Distancia mínima entre enemigos
-                    if distance < min_distance:
-                        # Ajustar posiciones para mantener la distancia mínima
-                        overlap = min_distance - distance
-                        direction = (enemy.position - other_enemy.position).normalize()
-                        enemy.position += direction * (overlap / 2)
-                        other_enemy.position -= direction * (overlap / 2)
-                        enemy.rect.x = enemy.position.x
-                        enemy.rect.y = enemy.position.y
-                        other_enemy.rect.x = other_enemy.position.x
-                        other_enemy.rect.y = other_enemy.position.y
-            
-            # Comprobar colisión con el jugador
-            if enemy.rect.colliderect(self.player.rect):
-                self.player.health -= 10
-                self.enemies.remove(enemy)
-                continue
+            # Signal threads to update
+            for event in self.thread_events:
+                event.set()
 
-    def avoid_collisions(self, enemy, direction, tilemap):
-        # Detectar colisiones y ajustar la dirección
-        directions = [
-            pygame.Vector2(-direction.y, direction.x),  # Girar 90 grados
-            pygame.Vector2(direction.y, -direction.x),  # Girar 90 grados en la otra dirección
-            pygame.Vector2(-direction.x, -direction.y)  # Girar 180 grados
-        ]
-        for new_direction in directions:
-            future_position = enemy.position + new_direction * self.settings.enemy_speed
-            enemy.rect.x = future_position.x
-            enemy.rect.y = future_position.y
-            if not tilemap.check_collision(enemy.rect):
-                return new_direction
-        return direction
+            # Wait for threads to finish
+            for event in self.thread_events:
+                event.wait()
+                event.clear()
 
-    def check_collision(self, position, tilemap):
-        # Implementar la lógica de detección de colisiones
-        tile_x = int(position.x // self.settings.tile_size)
-        tile_y = int(position.y // self.settings.tile_size)
-        if tilemap.check_collision(pygame.Rect(tile_x * self.settings.tile_size, tile_y * self.settings.tile_size, self.settings.tile_size, self.settings.tile_size)):
-            return True
-        return False
+    def update_thread(self, thread_index):
+        while not self.stop_threads:
+            self.thread_events[thread_index].wait()
+            with self.thread_locks[thread_index]:
+                for enemy in self.thread_enemies[thread_index]:
+                    if self._is_in_view(enemy.rect.center, (self.player.rect.centerx, self.player.rect.centery)):
+                        enemy.update(self.delta_time, self.tilemap, self.player.rect.center)
+                        
+                        # Check collisions with other enemies
+                        nearby_enemies = self._get_nearby_enemies(enemy.rect.center, enemy.collision_radius * 2)
+                        for other_enemy in nearby_enemies:
+                            if enemy != other_enemy and enemy.check_collision_with_enemy(other_enemy):
+                                enemy.resolve_collision(other_enemy)
+
+                        # Check collision with the player
+                        if enemy.hitbox.colliderect(self.player.hitbox):
+                            self.player.health -= enemy.damage * self.delta_time
+                            push_dir = pygame.Vector2(enemy.rect.center) - pygame.Vector2(self.player.rect.center)
+                            if push_dir.length() > 0:
+                                push_dir = push_dir.normalize() * 5
+                                enemy.move(
+                                    enemy.rect.x + push_dir.x,
+                                    enemy.rect.y + push_dir.y
+                                )
+            self.thread_events[thread_index].clear()
 
     def draw(self, screen, camera_x, camera_y):
-        for enemy in self.enemies:
-            pygame.draw.rect(screen, (255, 0, 0),
-                pygame.Rect(
-                    enemy.position.x - camera_x,
-                    enemy.position.y - camera_y,
-                    self.settings.enemy_size[0],
-                    self.settings.enemy_size[1]
-                )
-            )
-
-class Enemy:
-    def __init__(self, settings, position):
-        self.settings = settings
-        self.position = pygame.Vector2(position)
-        self.rect = pygame.Rect(
-            position[0],
-            position[1],
-            settings.enemy_size[0],
-            settings.enemy_size[1]
+        camera_center = (
+            camera_x + self.settings.screen_width / 2,
+            camera_y + self.settings.screen_height / 2
         )
-        self.speed = settings.enemy_speed
+        
+        with self.lock:
+            for enemy in self.enemies:
+                if self._is_in_view(enemy.rect.center, camera_center):
+                    screen.blit(enemy.image, (enemy.rect.x - camera_x, enemy.rect.y - camera_y))
+
+    def stop(self):
+        self.stop_threads = True
+        for event in self.thread_events:
+            event.set()
+        for thread in self.threads:
+            thread.join()
