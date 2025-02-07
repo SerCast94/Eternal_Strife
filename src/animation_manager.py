@@ -1,5 +1,6 @@
 import pygame
 import os
+from sprite_object import SpriteObject
 
 class AnimationManager:
     def __init__(self, settings):
@@ -10,7 +11,7 @@ class AnimationManager:
     def load_animations(self, config):
         animations = {}
         for name, anim_data in config.items():
-            spritesheet = pygame.image.load(os.path.join(self.settings.base_path, anim_data['spritesheet'])).convert_alpha()
+            spritesheet = pygame.image.load(anim_data['spritesheet']).convert_alpha()
             frames = []
             for frame_data in anim_data['frames']:
                 frame_index = frame_data['index']
@@ -29,19 +30,15 @@ class AnimationManager:
         self.cache[name] = animation
         return animation
 
-class AnimatedSprite(pygame.sprite.Sprite):
-    def __init__(self, animation_manager, animation_name, position, size, update_frequency=0.1):
-        super().__init__()
+class AnimatedSprite(SpriteObject):
+    def __init__(self, animation_manager, animation_name, position, size, settings, update_frequency=0.1):
         self.animation_manager = animation_manager
         self.animation_name = animation_name
         self.frames = self.animation_manager.get_animation(animation_name)
         self.current_frame = 0
-        self.image = self.frames[self.current_frame][0]
-        self.rect = self.image.get_rect(center=position)
-        self.hitbox = pygame.Rect(0, 0, size[0], size[1])
-        self.hitbox.center = self.rect.center
         self.time_accumulator = 0
         self.update_frequency = update_frequency  # Frecuencia de actualización de la animación
+        super().__init__(self.frames[self.current_frame][0], position, size, settings)
 
     def change_animation(self, animation_name):
         if self.animation_name != animation_name:
@@ -65,11 +62,6 @@ class AnimatedSprite(pygame.sprite.Sprite):
             old_center = self.rect.center
             self.rect = self.image.get_rect(center=old_center)
             self.hitbox.center = self.rect.center
-        
-    def move(self, x, y):
-        self.rect.x = x
-        self.rect.y = y
-        self.hitbox.center = self.rect.center
         
     def update(self, delta_time):
         self.time_accumulator += delta_time

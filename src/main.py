@@ -1,6 +1,5 @@
 import pygame
 import sys
-import math
 import threading
 from game_state import GameState
 from settings import Settings
@@ -39,15 +38,17 @@ class Game:
 
             self.log("Inicializando TileMap...")
             self.tilemap = TileMap(self.settings)
+            self.tilemap.generate()
             self.log("TileMap inicializado")
 
-            self.log("Inicializando Player...")
-            self.player = Player(self.settings, self.animation_manager)
-            self.log("Player inicializado")
-
             self.log("Inicializando EnemyManager...")
-            self.enemy_manager = EnemyManager(self.settings, self.player, self.animation_manager, self.tilemap)
+            self.enemy_manager = EnemyManager(self.settings, None, self.animation_manager, self.tilemap)
             self.log("EnemyManager inicializado")
+
+            self.log("Inicializando Player...")
+            self.player = Player(self.settings, self.animation_manager, self.enemy_manager)
+            self.enemy_manager.player = self.player  # Asignar el jugador al EnemyManager
+            self.log("Player inicializado")
 
             self.log("Inicializando UIManager...")
             self.ui_manager = UIManager(self.settings)
@@ -70,7 +71,7 @@ class Game:
     def show_loading_screen(self):
         try:
             loading_font = pygame.font.SysFont(None, 48)
-            loading_text = loading_font.render("Cargando...", True, (255, 255, 255))
+            loading_text = loading_font.render("Generando nivel...", True, (255, 255, 255))
             self.screen.fill((0, 0, 0))
             self.screen.blit(loading_text, (self.settings.screen_width // 2 - loading_text.get_width() // 2,
                                             self.settings.screen_height // 2 - loading_text.get_height() // 2))
@@ -102,108 +103,61 @@ class Game:
             # Regenerar el mapa
             self.log("Regenerando el mapa...")
             self.tilemap = TileMap(self.settings)
+            self.tilemap.generate()
             self.log("Mapa regenerado")
             
             # Reiniciar jugador
             self.log("Reiniciando jugador...")
-            self.player = Player(self.settings, self.animation_manager)
+            self.player = Player(self.settings, self.animation_manager, self.enemy_manager)
             self.log("Jugador reiniciado")
             
             # Reiniciar enemigos
-            self.log("Reiniciando enemigos...")
-            self.enemy_manager.stop()
+            self.log("Reiniciando EnemyManager...")
             self.enemy_manager = EnemyManager(self.settings, self.player, self.animation_manager, self.tilemap)
-            self.log("Enemigos reiniciados")
+            self.log("EnemyManager reiniciado")
             
-            # Reiniciar estado del juego
-            self.log("Reiniciando estado del juego...")
-            self.game_state = GameState()
-            self.log("Estado del juego reiniciado")
-            self.log("Juego reiniciado")
-
-            # Reiniciar el evento de sincronización
-            self.update_event.clear()
-
+            self.log("Componentes del juego reiniciados correctamente")
         except Exception as e:
             self.log(f"Error reiniciando el juego: {e}")
 
-    def update(self):
+    def update(self, delta_time):
         try:
-            if not self.game_state.is_game_over:
-                delta_time = self.clock.get_time() / 1000.0
-                
-                # Actualizar componentes
-                self.player.update(delta_time, self.tilemap)
-                self.game_state.update(delta_time)
-                
-                # Actualizar la cámara para seguir al jugador
-                self.tilemap.update_camera(self.player.rect.x, self.player.rect.y)
-                
-                # Comprobar condición de game over
-                if self.player.health <= 0:
-                    self.game_state.is_game_over = True
-                    print("Game Over")
-        except Exception as e:
-            print(f"Error actualizando el juego: {e}")
-
-    def update_enemies(self):
-        while not self.game_state.is_game_over:
-            self.update_event.wait()  # Esperar a que el evento sea activado
-            delta_time = self.clock.get_time() / 1000.0
+            self.player.update(delta_time, self.tilemap)
             self.enemy_manager.update(delta_time, self.tilemap)
-            self.update_event.clear()  # Limpiar el evento después de la actualización
+            self.tilemap.update_camera(self.player.rect.centerx, self.player.rect.centery)
+        except Exception as e:
+            self.log(f"Error actualizando el juego: {e}")
 
-    def render(self):
+    def draw(self):
         try:
             self.render_surface.fill((0, 0, 0))
-            
-            # Dibujar el mapa
-            self.tilemap.draw(self.render_surface)
-            
-            # Dibujar entidades
+            self.tilemap.draw_base_layer(self.render_surface)
+            self.tilemap.draw_medium_layer(self.render_surface)
             self.player.draw(self.render_surface, self.tilemap.camera_x, self.tilemap.camera_y)
             self.enemy_manager.draw(self.render_surface, self.tilemap.camera_x, self.tilemap.camera_y)
-            
-            # Escalar la superficie de renderizado según el factor de zoom
-            zoomed_surface = pygame.transform.scale(
-                self.render_surface, 
-                (int(self.settings.screen_width * self.settings.zoom), 
-                 int(self.settings.screen_height * self.settings.zoom))
-            )
-            
-            # Dibujar la superficie escalada en la pantalla
-            self.screen.blit(zoomed_surface, (0, 0))
-            
-            # Dibujar UI sin aplicar zoom
-            self.ui_manager.draw(self.screen, self.player, self.game_state, self.enemy_manager)
-            
+            for item in self.enemy_manager.items:
+                item.draw(self.render_surface, self.tilemap.camera_x, self.tilemap.camera_y)
+            self.tilemap.draw_overlay_layer(self.render_surface, self.player.rect)
+            self.ui_manager.draw(self.render_surface, self.player, self.game_state, self.enemy_manager)
+            self.screen.blit(pygame.transform.scale(self.render_surface, self.screen.get_size()), (0, 0))
             pygame.display.flip()
         except Exception as e:
-            print(f"Error renderizando el juego: {e}")
+            self.log(f"Error dibujando el juego: {e}")
 
     def run(self):
-        running = True
         try:
-            # Iniciar el hilo de actualización de enemigos después de la inicialización
-            self.enemy_thread = threading.Thread(target=self.update_enemies)
-            self.enemy_thread.start()
-
-            while running:
-                running = self.handle_events()
-                self.update()
-                self.update_event.set()  # Activar el evento para actualizar los enemigos
-                self.render()
-                self.clock.tick(self.settings.FPS)
-                # print("Frame actualizado")
+            while True:
+                delta_time = self.clock.tick(self.settings.FPS) / 1000.0
+                if not self.handle_events():
+                    break
+                self.update(delta_time)
+                self.draw()
         except Exception as e:
-            print(f"Se produjo un error: {e}")
+            self.log(f"Error en el bucle principal: {e}")
         finally:
-            self.enemy_manager.stop()
             pygame.quit()
-            print("Pygame cerrado correctamente")
+            sys.exit()
 
 if __name__ == "__main__":
-    print("Iniciando el juego...")
     game = Game()
     game.run()
-    print("Juego terminado")

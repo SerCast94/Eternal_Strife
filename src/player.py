@@ -1,14 +1,19 @@
 import pygame
 from animation_manager import AnimatedSprite
+from attacks import FireballAttack
+from item import Gem, Tuna
 
 class Player(AnimatedSprite):
-    def __init__(self, settings, animation_manager):
+    def __init__(self, settings, animation_manager, enemy_manager):
         initial_pos = (settings.map_width * settings.tile_size // 2, 
                       settings.map_height * settings.tile_size // 2)
-        super().__init__(animation_manager, 'player_idle', initial_pos, settings.player_size)
+        super().__init__(animation_manager, 'player_idle', initial_pos, settings.player_size, settings)
         self.settings = settings
         self.velocity = pygame.Vector2()
         self.health = settings.player_health
+        self.max_health = settings.player_health
+        self.score = 0
+        self.is_player = True  # Atributo para identificar al jugador
         
         # Movement state
         self.moving = False
@@ -24,6 +29,16 @@ class Player(AnimatedSprite):
             "walk_up": "player_walk_up",
             "walk_down": "player_walk_down"
         }
+
+        # Inventario de ataques
+        self.attacks = []
+        self.add_attack(FireballAttack(settings, self, enemy_manager))
+
+        # Referencia al EnemyManager
+        self.enemy_manager = enemy_manager
+
+    def add_attack(self, attack):
+        self.attacks.append(attack)
         
     def handle_input(self, event):
         if event.type == pygame.KEYDOWN:
@@ -76,5 +91,24 @@ class Player(AnimatedSprite):
             self.settings.map_height * self.settings.tile_size - self.settings.player_size[1]))
         self.move(new_x, new_y)
 
+        # Actualizar ataques
+        for attack in self.attacks:
+            attack.update(delta_time)
+            attack.attack()  # Lanzar ataque automáticamente después del cooldown
+
+        # Recoger ítems
+        self.collect_items(self.enemy_manager.items)
+
     def draw(self, screen, camera_x, camera_y):
-        screen.blit(self.image, (self.rect.x - camera_x, self.rect.y - camera_y))
+        super().draw(screen, camera_x, camera_y)
+        for attack in self.attacks:
+            attack.draw(screen, camera_x, camera_y)
+
+    def collect_items(self, items):
+        for item in items[:]:
+            if self.hitbox.colliderect(item.rect):
+                if isinstance(item, Gem):
+                    self.score += 1
+                elif isinstance(item, Tuna):
+                    self.health = min(self.max_health, self.health + self.max_health * 0.2)
+                items.remove(item)

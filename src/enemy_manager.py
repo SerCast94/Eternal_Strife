@@ -3,6 +3,8 @@ import random
 import math
 import threading
 from enemy_types import SlimeEnemy, RangedEnemy
+from item import Item, Gem, Tuna
+from projectile import Projectile
 
 class EnemyManager:
     def __init__(self, settings, player, animation_manager, tilemap):
@@ -11,6 +13,8 @@ class EnemyManager:
         self.animation_manager = animation_manager
         self.tilemap = tilemap  # Almacenar tilemap
         self.enemies = []
+        self.items = []  # Lista de ítems dropeados
+        self.projectiles = []  # Lista de proyectiles
         self.spawn_timer = 0
         self.time_elapsed = 0
         self.spawn_rate = self.settings.enemy_spawn_rate
@@ -83,7 +87,7 @@ class EnemyManager:
 
     def spawn_enemy(self):
         angle = random.uniform(0, 2 * math.pi)
-        distance = 800
+        distance = 300
         spawn_x = self.player.rect.x + math.cos(angle) * distance
         spawn_y = self.player.rect.y + math.sin(angle) * distance
 
@@ -94,7 +98,7 @@ class EnemyManager:
 
         with self.lock:
             enemy_class = self._get_random_enemy_type()
-            enemy = enemy_class(self.settings, (spawn_x, spawn_y), self.animation_manager)
+            enemy = enemy_class(self.settings, (spawn_x, spawn_y), self.animation_manager, self)
             self.enemies.append(enemy)
             # Assign the enemy to a thread
             thread_index = len(self.enemies) % self.num_threads
@@ -129,6 +133,11 @@ class EnemyManager:
                 event.wait()
                 event.clear()
 
+        # Actualizar proyectiles
+        for projectile in self.projectiles[:]:
+            if projectile.update(delta_time, self.player, self):
+                self.projectiles.remove(projectile)
+
     def update_thread(self, thread_index):
         while not self.stop_threads:
             self.thread_events[thread_index].wait()
@@ -153,22 +162,37 @@ class EnemyManager:
                                     enemy.rect.x + push_dir.x,
                                     enemy.rect.y + push_dir.y
                                 )
+                # Eliminar enemigos muertos y dropear ítems
+                for enemy in self.thread_enemies[thread_index][:]:
+                    if enemy.health <= 0:
+                        self.remove_enemy(enemy)
             self.thread_events[thread_index].clear()
 
-    def draw(self, screen, camera_x, camera_y):
-        camera_center = (
-            camera_x + self.settings.screen_width / 2,
-            camera_y + self.settings.screen_height / 2
-        )
-        
+    def remove_enemy(self, enemy):
         with self.lock:
-            for enemy in self.enemies:
-                if self._is_in_view(enemy.rect.center, camera_center):
-                    screen.blit(enemy.image, (enemy.rect.x - camera_x, enemy.rect.y - camera_y))
+            for thread_enemies in self.thread_enemies:
+                if enemy in thread_enemies:
+                    thread_enemies.remove(enemy)
+            if enemy in self.enemies:
+                self.enemies.remove(enemy)
+            self.drop_item(enemy.rect.center)
 
-    def stop(self):
-        self.stop_threads = True
-        for event in self.thread_events:
-            event.set()
-        for thread in self.threads:
-            thread.join()
+    def drop_item(self, position):
+        # Dropear un ítem aleatorio (gema o atún)
+        if random.random() < 0.95:
+            item = Gem(self.settings, self.animation_manager, position)
+        else:
+            item = Tuna(self.settings, self.animation_manager, position)
+        self.items.append(item)
+
+    def add_projectile(self, projectile):
+        self.projectiles.append(projectile)
+
+    def draw(self, screen, camera_x, camera_y):
+        # Dibujar enemigos
+        for enemy in self.enemies:
+            enemy.draw(screen, camera_x, camera_y)
+        
+        # Dibujar proyectiles
+        for projectile in self.projectiles:
+            projectile.draw(screen, camera_x, camera_y)

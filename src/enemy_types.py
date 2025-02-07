@@ -1,20 +1,20 @@
-from animation_manager import AnimatedSprite
 import pygame
 from base_enemy import BaseEnemy
+from projectile import Projectile
 
 class SlimeEnemy(BaseEnemy):
-    def __init__(self, settings, position, animation_manager):
+    def __init__(self, settings, position, animation_manager, enemy_manager):
         enemy_data = {
             'idle_animation': 'slime_idle',
-            'size': settings.enemy_size,
-            'speed': settings.enemy_speed,
-            'health': 100,
+            'size': (32, 32),
+            'speed': 50,
+            'health': 10,
             'damage': 10,
-            'scale': settings.enemy_scale,
-            'detection_radius': settings.enemy_detection_radius
+            'scale': 1.0,
+            'detection_radius': 100
         }
         super().__init__(settings, position, animation_manager, enemy_data)
-        self.avoid_force = pygame.Vector2()
+        self.enemy_manager = enemy_manager
 
     def update_behavior(self, delta_time, tilemap, player_pos):
         # Comportamiento básico del slime: perseguir al jugador y evitar obstáculos
@@ -30,61 +30,148 @@ class SlimeEnemy(BaseEnemy):
         if steering.length() > 0:
             steering = steering.normalize()
             
-        # Actualizar posición
+        # Guardar la posición anterior
+        old_position = self.rect.topleft
+        
+        # Intentar mover
         new_x = self.rect.x + steering.x * self.speed * delta_time
         new_y = self.rect.y + steering.y * self.speed * delta_time
         self.move(new_x, new_y)
+        
+        # Verificar colisiones y límites
+        if tilemap.check_collision(self.hitbox):
+            self.move(old_position[0], old_position[1])
+            # Intentar moverse en una dirección diferente si hay colisión
+            self._resolve_stuck(tilemap)
 
     def _detect_obstacles(self, tilemap):
-        directions = [(1, 0), (1, 1), (0, 1), (-1, 1),
-                     (-1, 0), (-1, -1), (0, -1), (1, -1)]
+        directions = [
+            pygame.Vector2(1, 0), pygame.Vector2(1, 1), pygame.Vector2(0, 1), pygame.Vector2(-1, 1),
+            pygame.Vector2(-1, 0), pygame.Vector2(-1, -1), pygame.Vector2(0, -1), pygame.Vector2(1, -1)
+        ]
         avoid_force = pygame.Vector2()
         
         for direction in directions:
-            ray_dir = pygame.Vector2(direction)
             ray_pos = pygame.Vector2(self.rect.center)
             
             for distance in range(0, self.detection_radius, 8):
-                check_pos = ray_pos + ray_dir * distance
+                check_pos = ray_pos + direction * distance
                 check_rect = pygame.Rect(check_pos.x - 4, check_pos.y - 4, 8, 8)
                 
                 if tilemap.check_collision(check_rect):
-                    avoid_force -= ray_dir * (self.detection_radius - distance)
+                    avoid_force -= direction * (self.detection_radius - distance) / self.detection_radius
                     break
                     
-        return avoid_force.normalize() * 0.5 if avoid_force.length() > 0 else avoid_force
+        return avoid_force.normalize() * self.settings.enemy_avoid_force if avoid_force.length() > 0 else avoid_force
+
+    def _resolve_stuck(self, tilemap):
+        # Intentar moverse en una dirección diferente si hay colisión
+        directions = [
+            pygame.Vector2(1, 0), pygame.Vector2(-1, 0), pygame.Vector2(0, 1), pygame.Vector2(0, -1)
+        ]
+        for direction in directions:
+            new_x = self.rect.x + direction.x * self.speed * 0.1
+            new_y = self.rect.y + direction.y * self.speed * 0.1
+            self.move(new_x, new_y)
+            if not tilemap.check_collision(self.hitbox):
+                break
 
 class RangedEnemy(BaseEnemy):
-    def __init__(self, settings, position, animation_manager):
+    def __init__(self, settings, position, animation_manager, enemy_manager):
         enemy_data = {
             'idle_animation': 'ranged_idle',
-            'size': settings.enemy_size,
-            'speed': settings.enemy_speed * 0.7,
-            'health': 70,
-            'damage': 15,
-            'scale': settings.enemy_scale,
-            'detection_radius': settings.enemy_detection_radius * 1.5
+            'size': (32, 32),
+            'speed': 50,
+            'health': 100,
+            'damage': 10,
+            'scale': 1.0,
+            'detection_radius': 300,  # Radio de detección para disparar
+            'escape_radius': 80,     # Radio de escape para huir
+            'attack_cooldown': 2.0
         }
         super().__init__(settings, position, animation_manager, enemy_data)
-        self.attack_range = 200
-        self.attack_cooldown = 2.0
-        self.time_since_attack = 0
+        self.enemy_manager = enemy_manager
+        self.attack_timer = 0
+        self.projectiles = []  # Inicializar el atributo projectiles
 
     def update_behavior(self, delta_time, tilemap, player_pos):
-        self.time_since_attack += delta_time
+        # Comportamiento básico del enemigo a distancia: mantener distancia y atacar al jugador
         to_player = pygame.Vector2(player_pos) - pygame.Vector2(self.rect.center)
-        distance = to_player.length()
-
-        if distance > 0:
+        distance_to_player = to_player.length()
+        if distance_to_player > 0:
             to_player = to_player.normalize()
 
-        if distance > self.attack_range:
-            # Acercarse al jugador
-            new_x = self.rect.x + to_player.x * self.speed * delta_time
-            new_y = self.rect.y + to_player.y * self.speed * delta_time
+        # Mantener distancia del jugador
+        if distance_to_player < self.enemy_data['escape_radius']:
+            avoid_force = -to_player  # Huir del jugador si está dentro del radio de escape
+        else:
+            avoid_force = pygame.Vector2()
+
+        # Detectar obstáculos
+        avoid_obstacles = self._detect_obstacles(tilemap)
+        
+        # Combinar fuerzas
+        steering = avoid_force + avoid_obstacles
+        if steering.length() > 0:
+            steering = steering.normalize()
+            
+        # Guardar la posición anterior
+        old_position = self.rect.topleft
+        
+        # Intentar mover
+        new_x = self.rect.x + steering.x * self.speed * delta_time
+        new_y = self.rect.y + steering.y * self.speed * delta_time
+        self.move(new_x, new_y)
+        
+        # Verificar colisiones y límites
+        if tilemap.check_collision(self.hitbox):
+            self.move(old_position[0], old_position[1])
+            # Intentar moverse en una dirección diferente si hay colisión
+            self._resolve_stuck(tilemap)
+
+        # Atacar al jugador si está en rango de detección
+        self.attack_timer -= delta_time
+        if self.attack_timer <= 0 and distance_to_player < self.enemy_data['detection_radius']:
+            self.attack(player_pos)
+            self.attack_timer = self.enemy_data['attack_cooldown']
+
+    def _detect_obstacles(self, tilemap):
+        directions = [
+            pygame.Vector2(1, 0), pygame.Vector2(1, 1), pygame.Vector2(0, 1), pygame.Vector2(-1, 1),
+            pygame.Vector2(-1, 0), pygame.Vector2(-1, -1), pygame.Vector2(0, -1), pygame.Vector2(1, -1)
+        ]
+        avoid_force = pygame.Vector2()
+        
+        for direction in directions:
+            ray_pos = pygame.Vector2(self.rect.center)
+            
+            for distance in range(0, self.enemy_data['detection_radius'], 8):
+                check_pos = ray_pos + direction * distance
+                check_rect = pygame.Rect(check_pos.x - 4, check_pos.y - 4, 8, 8)
+                
+                if tilemap.check_collision(check_rect):
+                    avoid_force -= direction * (self.enemy_data['detection_radius'] - distance) / self.enemy_data['detection_radius']
+                    break
+                    
+        return avoid_force.normalize() * self.settings.enemy_avoid_force if avoid_force.length() > 0 else avoid_force
+
+    def _resolve_stuck(self, tilemap):
+        # Intentar moverse en una dirección diferente si hay colisión
+        directions = [
+            pygame.Vector2(1, 0), pygame.Vector2(-1, 0), pygame.Vector2(0, 1), pygame.Vector2(0, -1)
+        ]
+        for direction in directions:
+            new_x = self.rect.x + direction.x * self.speed * 0.1
+            new_y = self.rect.y + direction.y * self.speed * 0.1
             self.move(new_x, new_y)
-        elif distance < self.attack_range * 0.7:
-            # Alejarse del jugador
-            new_x = self.rect.x - to_player.x * self.speed * delta_time
-            new_y = self.rect.y - to_player.y * self.speed * delta_time
-            self.move(new_x, new_y)
+            if not tilemap.check_collision(self.hitbox):
+                break
+
+    def attack(self, player_pos):
+        # Crear un proyectil dirigido al jugador
+        direction = pygame.Vector2(player_pos) - pygame.Vector2(self.rect.center)
+        if direction.length() > 0:
+            direction = direction.normalize()
+        projectile = Projectile(self.settings, self.animation_manager, self.rect.center, player_pos, self.enemy_data['damage'], 200, 'player', 'enemy_projectile_idle')
+        self.projectiles.append(projectile)  # Agregar el proyectil a la lista de proyectiles
+        self.enemy_manager.add_projectile(projectile)

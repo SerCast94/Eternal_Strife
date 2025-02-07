@@ -9,7 +9,7 @@ class UIManager:
         # Barra de vida
         health_bar_width = 200
         health_bar_height = 20
-        health_percentage = max(0, player.health / self.settings.player_health)
+        health_percentage = max(0, player.health / player.max_health)
         
         pygame.draw.rect(screen, (255, 0, 0),
             (10, 10, health_bar_width, health_bar_height))
@@ -17,8 +17,8 @@ class UIManager:
             (10, 10, health_bar_width * health_percentage, health_bar_height))
 
         # Puntuación y tiempo
-        score_text = self.font.render(f"Score: {game_state.score}", True, (255, 255, 255))
-        time_text = self.font.render(f"Time: {int(game_state.game_time)}s", True, (255, 255, 255))
+        score_text = self.font.render(f"Puntuación: {player.score}", True, (255, 255, 255))  # Mostrar el score del jugador
+        time_text = self.font.render(f"Tiempo: {int(game_state.game_time)}s", True, (255, 255, 255))
         screen.blit(score_text, (10, 40))
         screen.blit(time_text, (10, 70))
 

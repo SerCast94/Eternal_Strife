@@ -4,7 +4,7 @@ from abc import ABC, abstractmethod
 
 class BaseEnemy(AnimatedSprite):
     def __init__(self, settings, position, animation_manager, enemy_data):
-        super().__init__(animation_manager, enemy_data['idle_animation'], position, enemy_data['size'])
+        super().__init__(animation_manager, enemy_data['idle_animation'], position, enemy_data['size'], settings)
         self.settings = settings
         self.speed = enemy_data['speed']
         self.health = enemy_data['health']
@@ -12,6 +12,7 @@ class BaseEnemy(AnimatedSprite):
         self.scale_sprite(enemy_data['scale'])
         self.detection_radius = enemy_data['detection_radius']
         self.collision_radius = max(enemy_data['size'][0], enemy_data['size'][1]) * 0.4
+        self.enemy_data = enemy_data  # Asegúrate de que enemy_data esté definido
         
     def check_collision_with_enemy(self, other_enemy):
         """Comprueba si hay colisión con otro enemigo usando círculos"""
@@ -34,6 +35,7 @@ class BaseEnemy(AnimatedSprite):
                 other_enemy.rect.x - direction.x * push_strength,
                 other_enemy.rect.y - direction.y * push_strength
             )
+
     @abstractmethod
     def update_behavior(self, delta_time, tilemap, player_pos):
         """Comportamiento específico de cada tipo de enemigo"""
@@ -49,4 +51,4 @@ class BaseEnemy(AnimatedSprite):
         
     def draw(self, screen, camera_x, camera_y):
         """Dibuja el enemigo en la pantalla teniendo en cuenta la posición de la cámara"""
-        screen.blit(self.image, (self.rect.x - camera_x, self.rect.y - camera_y))
+        super().draw(screen, camera_x, camera_y)
