@@ -179,7 +179,7 @@ class EnemyManager:
 
     def drop_item(self, position):
         # Dropear un ítem aleatorio (gema o atún)
-        if random.random() < 0.95:
+        if random.random() < 0.70:
             item = Gem(self.settings, self.animation_manager, position)
         else:
             item = Tuna(self.settings, self.animation_manager, position)
@@ -191,8 +191,10 @@ class EnemyManager:
     def draw(self, screen, camera_x, camera_y):
         # Dibujar enemigos
         for enemy in self.enemies:
-            enemy.draw(screen, camera_x, camera_y)
+            if self._is_in_view(enemy.rect.center, (camera_x, camera_y)):
+                enemy.draw(screen, camera_x, camera_y)
         
         # Dibujar proyectiles
         for projectile in self.projectiles:
-            projectile.draw(screen, camera_x, camera_y)
+            if self._is_in_view(projectile.rect.center, (camera_x, camera_y)):
+                projectile.draw(screen, camera_x, camera_y)

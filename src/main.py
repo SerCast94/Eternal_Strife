@@ -16,7 +16,7 @@ class Main:
             menu = Menu(self.screen)
             menu.run()
             if menu.start_game:
-                game = Game(self.screen)
+                game = Game(self.screen, debug_mode=menu.debug_mode)
                 game.run()
             else:
                 self.running = False

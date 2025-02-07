@@ -10,6 +10,7 @@ class Menu:
     def __init__(self, screen):
         self.screen = screen
         self.start_game = False
+        self.debug_mode = False  # Añadir un atributo para el modo de depuración
 
         # Load the GIF frames
         self.frames = []
@@ -47,9 +48,10 @@ class Menu:
             self.stars.append([x, y, radius, random.randint(0, 255)])
 
         # Create buttons
-        self.start_button = Button("Iniciar Juego", (260, 440), None)
+        self.start_button = Button("Iniciar Juego", (345, 550), None)
         self.high_scores_button = Button("Puntuaciones", (250, 495), None)
         self.exit_button = Button("Salir", (345, 550), None)
+        self.debug_button = Button("Debug", (260, 440), None)  # Añadir botón de depuración
 
         # Variables para controlar el GIF
         self.frame_index = 0
@@ -72,6 +74,10 @@ class Menu:
                 if self.exit_button.click(event):
                     pygame.quit()
                     sys.exit()
+                if self.debug_button.click(event):
+                    self.debug_mode = True
+                    self.start_game = True
+                    running = False
 
             # Draw the background (stars)
             self.screen.fill((0, 0, 0))
@@ -94,6 +100,7 @@ class Menu:
             self.start_button.show(self.screen)
             self.high_scores_button.show(self.screen)
             self.exit_button.show(self.screen)
+            self.debug_button.show(self.screen)  # Mostrar botón de depuración
 
             pygame.display.update()
             clock.tick(60)

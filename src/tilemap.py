@@ -51,6 +51,8 @@ class TileMap:
             self.player_start_pos = (settings.map_width // 2, settings.map_height // 2)  # Posición inicial del jugador
             self.safe_radius = 5  # Radio seguro alrededor del jugador donde no se generarán colisiones
             self.generated_patterns = []  # Lista para almacenar los patrones generados
+            self.scaled_tile_cache = {}  # Caché para almacenar tiles escalados
+            self.base_layer_surface = None  # Superficie de caché para la capa base
             print("TileMap inicializado correctamente")
         except Exception as e:
             print(f"Error inicializando TileMap: {e}")
@@ -100,6 +102,12 @@ class TileMap:
             (tile_x, tile_y, tileset_info.tile_size, tileset_info.tile_size)
         )
         return tile_surface
+    
+    def _scale_tile(self, tile_surface: pygame.Surface) -> pygame.Surface:
+        if tile_surface not in self.scaled_tile_cache:
+            scaled_tile_surface = pygame.transform.scale(tile_surface, (int(16 * self.settings.zoom), int(16 * self.settings.zoom)))
+            self.scaled_tile_cache[tile_surface] = scaled_tile_surface
+        return self.scaled_tile_cache[tile_surface]
 
     def _choose_tile(self, rule: GenerationRule) -> int:
         if rule.tiles:
@@ -132,7 +140,7 @@ class TileMap:
                                 if random.random() < rule.chance and not (rule.collidable and self._is_within_safe_radius(x, y)):
                                     tile_id = self._choose_tile(rule)
                                     tile_surface = self._get_tile_from_tileset(tileset, tile_id, rule.tileset)
-                                    scaled_tile_surface = pygame.transform.scale(tile_surface, (int(16 * self.settings.zoom), int(16 * self.settings.zoom)))
+                                    scaled_tile_surface = self._scale_tile(tile_surface)
                                     if stage.name == "base":
                                         self.base_layer[y][x] = scaled_tile_surface
                                     else:
@@ -147,6 +155,16 @@ class TileMap:
                             self._place_random_pattern(rule, tileset)
             print("TileMap generado correctamente")
             self._log_generated_patterns()
+
+            # Crear la superficie de caché para la capa base
+            self.base_layer_surface = pygame.Surface(
+                (self.settings.map_width * self.settings.tile_size, self.settings.map_height * self.settings.tile_size),
+                pygame.SRCALPHA
+            )
+            for y in range(self.settings.map_height):
+                for x in range(self.settings.map_width):
+                    if self.base_layer[y][x] is not None:
+                        self.base_layer_surface.blit(self.base_layer[y][x], (x * self.settings.tile_size, y * self.settings.tile_size))
         except Exception as e:
             print(f"Error generando TileMap: {e}")
             raise
@@ -199,16 +217,26 @@ class TileMap:
             print(f"Patrón '{rule.tileset.path}' generado en posición {position}")
 
     def update_camera(self, player_x: float, player_y: float):
-        # Centrar la cámara en el jugador teniendo en cuenta el factor de zoom
-        self.camera_x = player_x - (self.settings.screen_width / self.settings.zoom) // 2
-        self.camera_y = player_y - (self.settings.screen_height / self.settings.zoom) // 2
-        
-        # Limitar la cámara a los bordes del mapa
-        self.camera_x = max(0, min(self.camera_x, 
-            self.settings.map_width * self.settings.tile_size - self.settings.screen_width / self.settings.zoom))
-        self.camera_y = max(0, min(self.camera_y,
-            self.settings.map_height * self.settings.tile_size - self.settings.screen_height / self.settings.zoom))
+            # Centrar la cámara en el jugador teniendo en cuenta el factor de zoom
+            self.camera_x = player_x - (self.settings.screen_width / self.settings.zoom) // 2
+            self.camera_y = player_y - (self.settings.screen_height / self.settings.zoom) // 2
+            
+            # Limitar la cámara a los bordes del mapa
+            self.camera_x = max(0, min(self.camera_x, 
+                self.settings.map_width * self.settings.tile_size - self.settings.screen_width / self.settings.zoom))
+            self.camera_y = max(0, min(self.camera_y,
+                self.settings.map_height * self.settings.tile_size - self.settings.screen_height / self.settings.zoom))
 
+    def draw_base_layer(self, screen: pygame.Surface):
+            # Calcular el desplazamiento para centrar el mapa
+            offset_x = (self.settings.map_width * self.settings.tile_size) // 2
+            offset_y = (self.settings.map_height * self.settings.tile_size) // 2
+
+            # Dibujar la superficie de caché en la pantalla con el desplazamiento
+            screen.blit(self.base_layer_surface, 
+                        (-self.camera_x * self.settings.zoom + offset_x, 
+                        -self.camera_y * self.settings.zoom + offset_y))
+        
     def check_collision(self, rect: pygame.Rect) -> bool:
         tile_x1 = max(0, rect.left // self.settings.tile_size)
         tile_x2 = min(self.settings.map_width - 1, rect.right // self.settings.tile_size)
@@ -228,29 +256,7 @@ class TileMap:
                         return True
         return False
 
-    def draw_base_layer(self, screen: pygame.Surface):
-        # Calcular qué tiles están en la vista
-        start_x = int(self.camera_x) // self.settings.tile_size
-        start_y = int(self.camera_y) // self.settings.tile_size
-        end_x = start_x + int(self.settings.view_width * self.settings.zoom)
-        end_y = start_y + int(self.settings.view_height * self.settings.zoom)
-
-        # Asegurar que no nos salimos de los límites del mapa
-        start_x = max(0, start_x)
-        start_y = max(0, start_y)
-        end_x = min(self.settings.map_width, end_x)
-        end_y = min(self.settings.map_height, end_y)
-
-        # Dibujar capa base
-        for y in range(start_y, end_y):
-            for x in range(start_x, end_x):
-                if self.base_layer[y][x] is not None:
-                    screen.blit(
-                        self.base_layer[y][x],
-                        (x * 16 * self.settings.zoom - int(self.camera_x * self.settings.zoom),
-                         y * 16 * self.settings.zoom - int(self.camera_y * self.settings.zoom))
-                    )
-
+   
     def draw_medium_layer(self, screen: pygame.Surface):
         # Calcular qué tiles están en la vista
         start_x = int(self.camera_x) // self.settings.tile_size
@@ -296,4 +302,3 @@ class TileMap:
                     screen.blit(transparent_surface, tile_pos)
                 else:
                     screen.blit(tile.surface, tile_pos)
-                    

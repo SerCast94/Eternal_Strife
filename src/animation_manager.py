@@ -7,6 +7,7 @@ class AnimationManager:
         self.settings = settings
         self.animations = self.load_animations(settings.animation_configs)
         self.cache = {}  # Caché para almacenar frames de animación
+        self.global_time = 0  # Tiempo global para sincronizar animaciones
 
     def load_animations(self, config):
         animations = {}
@@ -29,6 +30,22 @@ class AnimationManager:
         animation = self.animations.get(name, [])
         self.cache[name] = animation
         return animation
+
+    def update(self, delta_time):
+        self.global_time += delta_time
+
+    def get_current_frame(self, animation_name):
+        frames = self.get_animation(animation_name)
+        if not frames:
+            return None
+        total_duration = sum(frame[1] for frame in frames)
+        current_time = self.global_time % total_duration
+        elapsed_time = 0
+        for frame, duration in frames:
+            elapsed_time += duration
+            if elapsed_time >= current_time:
+                return frame
+        return frames[0][0]  # Default to the first frame if something goes wrong
 
 class AnimatedSprite(SpriteObject):
     def __init__(self, animation_manager, animation_name, position, size, settings, update_frequency=0.1):

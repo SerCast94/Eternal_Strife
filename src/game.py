@@ -8,12 +8,15 @@ from tilemap import TileMap
 from enemy_manager import EnemyManager
 from ui_manager import UIManager
 from animation_manager import AnimationManager
+from profiler import Profiler
 
 class Game:
-    def __init__(self, screen):
+    def __init__(self, screen, debug_mode=False):
         self.screen = screen
         self.settings = Settings()
         self.clock = pygame.time.Clock()
+        self.debug_mode = debug_mode
+        self.profiler = Profiler() if debug_mode else None
         
         # Superficie de renderizado intermedia
         self.render_surface = pygame.Surface(
@@ -75,9 +78,14 @@ class Game:
                 if event.type == pygame.QUIT:
                     print("Evento de salida detectado")
                     return False
-                if event.type == pygame.KEYDOWN and event.key == pygame.K_r:
-                    print("Reiniciando juego...")
-                    self.restart_game()
+                if event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_r:
+                        print("Reiniciando juego...")
+                        self.restart_game()
+                    if event.key == pygame.K_F1 and self.debug_mode:
+                        self.profiler.show_graphs()
+                    if event.key == pygame.K_F2 and self.debug_mode:
+                        self.profiler.export_data()
                 self.player.handle_input(event)
             return True
         except Exception as e:
@@ -112,30 +120,97 @@ class Game:
 
     def update(self, delta_time):
         try:
+            if self.debug_mode:
+                self.profiler.start("update_animation_manager")
+            self.animation_manager.update(delta_time)  # Actualizar animaciones globalmente
+            if self.debug_mode:
+                self.profiler.stop()
+
+            if self.debug_mode:
+                self.profiler.start("update_player")
             self.player.update(delta_time, self.tilemap)
+            if self.debug_mode:
+                self.profiler.stop()
+
+            if self.debug_mode:
+                self.profiler.start("update_enemy_manager")
             self.enemy_manager.update(delta_time, self.tilemap)
+            if self.debug_mode:
+                self.profiler.stop()
+
+            if self.debug_mode:
+                self.profiler.start("update_tilemap")
             self.tilemap.update_camera(self.player.rect.centerx, self.player.rect.centery)
+            if self.debug_mode:
+                self.profiler.stop()
         except Exception as e:
             self.log(f"Error actualizando el juego: {e}")
 
     def draw(self):
         try:
+            if self.debug_mode:
+                self.profiler.start("draw_clear_surface")
             self.render_surface.fill((0, 0, 0))
+            if self.debug_mode:
+                self.profiler.stop()
+
+            if self.debug_mode:
+                self.profiler.start("draw_tilemap_base")
             self.tilemap.draw_base_layer(self.render_surface)
+            if self.debug_mode:
+                self.profiler.stop()
+
+            if self.debug_mode:
+                self.profiler.start("draw_tilemap_medium")
             self.tilemap.draw_medium_layer(self.render_surface)
+            if self.debug_mode:
+                self.profiler.stop()
+
+            if self.debug_mode:
+                self.profiler.start("draw_player")
             self.player.draw(self.render_surface, self.tilemap.camera_x, self.tilemap.camera_y)
+            if self.debug_mode:
+                self.profiler.stop()
+
+            if self.debug_mode:
+                self.profiler.start("draw_enemy_manager")
             self.enemy_manager.draw(self.render_surface, self.tilemap.camera_x, self.tilemap.camera_y)
+            if self.debug_mode:
+                self.profiler.stop()
+
+            if self.debug_mode:
+                self.profiler.start("draw_items")
             for item in self.enemy_manager.items:
                 item.draw(self.render_surface, self.tilemap.camera_x, self.tilemap.camera_y)
+            if self.debug_mode:
+                self.profiler.stop()
+
+            if self.debug_mode:
+                self.profiler.start("draw_tilemap_overlay")
             self.tilemap.draw_overlay_layer(self.render_surface, self.player.rect)
+            if self.debug_mode:
+                self.profiler.stop()
+
+            if self.debug_mode:
+                self.profiler.start("draw_ui_manager")
             self.ui_manager.draw(self.render_surface, self.player, self.game_state, self.enemy_manager)
+            if self.debug_mode:
+                self.profiler.stop()
+
+            if self.debug_mode:
+                self.profiler.start("draw_blit_surface")
             self.screen.blit(pygame.transform.scale(self.render_surface, self.screen.get_size()), (0, 0))
             pygame.display.flip()
+            if self.debug_mode:
+                self.profiler.stop()
         except Exception as e:
             self.log(f"Error dibujando el juego: {e}")
 
     def run(self):
         try:
+            # Actualizar la cámara antes de iniciar el bucle principal del juego
+            self.tilemap.update_camera(self.player.rect.centerx, self.player.rect.centery)
+            
             while True:
                 delta_time = self.clock.tick(self.settings.FPS) / 1000.0
                 if not self.handle_events():
