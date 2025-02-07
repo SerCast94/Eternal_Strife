@@ -198,7 +198,7 @@ class Settings:
                 ]
             },
             "gem_idle": {
-                "spritesheet": "assets/images/spritesheet_fireball.png",
+                "spritesheet": "assets/images/item.png",
                 "frame_width": 16,
                 "frame_height": 16,
                 "frames": [
@@ -206,7 +206,7 @@ class Settings:
                 ]
             },
             "tuna_idle": {
-                "spritesheet": "assets/images/spritesheet_fireball.png",
+                "spritesheet": "assets/images/pescaito.png",
                 "frame_width": 16,
                 "frame_height": 16,
                 "frames": [
@@ -214,11 +214,11 @@ class Settings:
                 ]
             },
             "fireball_idle": {
-                "spritesheet": "assets/images/spritesheet_fireball.png",
+                "spritesheet": "assets/images/player_attack.png",
                 "frame_width": 16,
                 "frame_height": 16,
                 "frames": [
-                    {"index": 0, "duration": 0.1},
+                    {"index": i, "duration": 0.1} for i in range(29)
                 ]
             },
             "enemy_projectile_idle": {
