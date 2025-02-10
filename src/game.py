@@ -1,3 +1,5 @@
+# src/game.py
+
 import pygame
 import sys
 import threading
@@ -8,7 +10,8 @@ from tilemap import TileMap
 from enemy_manager import EnemyManager
 from ui_manager import UIManager
 from animation_manager import AnimationManager
-from profiler import Profiler
+from game_over_screen import GameOverScreen
+import random
 
 class Game:
     def __init__(self, screen, debug_mode=False):
@@ -17,6 +20,15 @@ class Game:
         self.clock = pygame.time.Clock()
         self.debug_mode = debug_mode
         self.profiler = Profiler() if debug_mode else None
+
+        # Generate stars for loading screen
+        self.num_stars = 100
+        self.stars = []
+        for _ in range(self.num_stars):
+            x = random.randint(0, self.settings.screen_width)
+            y = random.randint(0, self.settings.screen_height)
+            radius = random.randint(1, 3)
+            self.stars.append([x, y, radius, random.randint(0, 255)])
         
         # Superficie de renderizado intermedia
         self.render_surface = pygame.Surface(
@@ -57,6 +69,8 @@ class Game:
         # Crear un evento para sincronización
         self.update_event = threading.Event()
 
+
+
     def log(self, message):
         print(message)
         self.show_loading_screen()
@@ -66,6 +80,11 @@ class Game:
             loading_font = pygame.font.SysFont(None, 48)
             loading_text = loading_font.render("Generando nivel...", True, (255, 255, 255))
             self.screen.fill((0, 0, 0))
+
+            # Draw stars
+            for star in self.stars:
+                pygame.draw.circle(self.screen, (255, 255, 255), (star[0], star[1]), star[2])
+
             self.screen.blit(loading_text, (self.settings.screen_width // 2 - loading_text.get_width() // 2,
                                             self.settings.screen_height // 2 - loading_text.get_height() // 2))
             pygame.display.flip()
@@ -77,6 +96,7 @@ class Game:
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     print("Evento de salida detectado")
+                    self.game_state.is_game_over = True
                     return False
                 if event.type == pygame.KEYDOWN:
                     if event.key == pygame.K_r:
@@ -128,6 +148,7 @@ class Game:
 
             if self.debug_mode:
                 self.profiler.start("update_player")
+            self.game_state.update(delta_time)  # Actualizar el tiempo de juego
             self.player.update(delta_time, self.tilemap)
             if self.debug_mode:
                 self.profiler.stop()
@@ -143,6 +164,10 @@ class Game:
             self.tilemap.update_camera(self.player.rect.centerx, self.player.rect.centery)
             if self.debug_mode:
                 self.profiler.stop()
+            
+            # Verificar si la vida del jugador llega a 0
+            if self.player.health <= 0:
+                self.game_state.is_game_over = True
         except Exception as e:
             self.log(f"Error actualizando el juego: {e}")
 
@@ -208,17 +233,16 @@ class Game:
 
     def run(self):
         try:
-            # Actualizar la cámara antes de iniciar el bucle principal del juego
-            self.tilemap.update_camera(self.player.rect.centerx, self.player.rect.centery)
-            
-            while True:
+            while not self.game_state.is_game_over:
                 delta_time = self.clock.tick(self.settings.FPS) / 1000.0
                 if not self.handle_events():
                     break
                 self.update(delta_time)
                 self.draw()
+                
+            # Mostrar pantalla de Game Over si el juego ha terminado
+            if self.game_state.is_game_over:
+                game_over_screen = GameOverScreen(self.screen, self.game_state, self.player.score)
+                game_over_screen.run()
         except Exception as e:
             self.log(f"Error en el bucle principal: {e}")
-        finally:
-            pygame.quit()
-            sys.exit()

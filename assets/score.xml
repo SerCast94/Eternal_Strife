@@ -1,63 +1,10 @@
-<?xml version="1.0" encoding="UTF-8"?>
 <scores>
     <score>
         <name>Player1</name>
-        <time>10:00</time>
-        <score_value>1500</score_value>
-        <enemies_defeated>30</enemies_defeated>
-    </score>
-    <score>
-        <name>Player2</name>
-        <time>12:30</time>
-        <score_value>2000</score_value>
-        <enemies_defeated>45</enemies_defeated>
-    </score>
-    <score>
-        <name>Player3</name>
-        <time>08:45</time>
-        <score_value>1200</score_value>
-        <enemies_defeated>25</enemies_defeated>
-    </score>
-    <score>
-        <name>Player4</name>
-        <time>09:15</time>
-        <score_value>1800</score_value>
-        <enemies_defeated>35</enemies_defeated>
-    </score>
-    <score>
-        <name>Player5</name>
-        <time>11:00</time>
-        <score_value>1700</score_value>
-        <enemies_defeated>40</enemies_defeated>
-    </score>
-    <score>
-        <name>Player6</name>
-        <time>07:30</time>
-        <score_value>1600</score_value>
-        <enemies_defeated>20</enemies_defeated>
-    </score>
-    <score>
-        <name>Player7</name>
-        <time>13:00</time>
-        <score_value>2100</score_value>
-        <enemies_defeated>50</enemies_defeated>
-    </score>
-    <score>
-        <name>Player8</name>
-        <time>06:45</time>
-        <score_value>1400</score_value>
-        <enemies_defeated>15</enemies_defeated>
-    </score>
-    <score>
-        <name>Player9</name>
-        <time>14:00</time>
-        <score_value>2200</score_value>
-        <enemies_defeated>55</enemies_defeated>
-    </score>
-    <score>
-        <name>Player10</name>
-        <time>05:30</time>
-        <score_value>1300</score_value>
-        <enemies_defeated>10</enemies_defeated>
-    </score>
-</scores>
+        <time>0:10</time>
+        <score_value>1</score_value>
+        <enemies_defeated>1</enemies_defeated>
+    </score>    
+<score><name>Scast</name><time>0</time><score_value>6</score_value><enemies_defeated>6</enemies_defeated></score><score><name>Scast</name><time>0</time><score_value>4</score_value><enemies_defeated>4</enemies_defeated></score><score><name>xd</name><time>0</time><score_value>2</score_value><enemies_defeated>2</enemies_defeated></score><score><name>asd
+
+</name><time>0</time><score_value>0</score_value><enemies_defeated>0</enemies_defeated></score><score><name>a</name><time>4</time><score_value>0</score_value><enemies_defeated>0</enemies_defeated></score><score><name>Scast</name><time>34</time><score_value>10</score_value><enemies_defeated>10</enemies_defeated></score><score><name>asddddd</name><time>00:14</time><score_value>4</score_value><enemies_defeated>4</enemies_defeated></score><score><name>Me mor&#237;i</name><time>00:04</time><score_value>0</score_value><enemies_defeated>0</enemies_defeated></score><score><name>asdasdasdasd</name><time>00:00</time><score_value>0</score_value><enemies_defeated>0</enemies_defeated></score><score><name>asd</name><time>00:01</time><score_value>0</score_value><enemies_defeated>0</enemies_defeated></score><score><name /><time>00:01</time><score_value>0</score_value><enemies_defeated>0</enemies_defeated></score><score><name /><time>00:00</time><score_value>0</score_value><enemies_defeated>0</enemies_defeated></score><score><name /><time>00:01</time><score_value>0</score_value><enemies_defeated>0</enemies_defeated></score></scores>

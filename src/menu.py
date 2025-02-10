@@ -24,18 +24,19 @@ class Menu:
             frame_surface = pygame.transform.scale(frame_surface, (300, 300))
 
             # Calculate the position to center the image
-            x_pos = (self.screen.get_width() - 300) // 2
-            y_pos = (self.screen.get_height() - 300) // 2
+            x_pos = (self.screen.get_width() - 300) // 2  # Ajustar posición x
+            y_pos = (self.screen.get_height() - 330) // 2  # Ajustar posición y
+
 
             # Append the frame with the calculated position
             self.frames.append((frame_surface, (x_pos, y_pos)))
 
         # Load the title image
         self.title_image = pygame.image.load('assets/images/titulo.png')
-        self.title_image = pygame.transform.scale(self.title_image, (400, 250))  # Adjust size as needed
+        self.title_image = pygame.transform.scale(self.title_image, (250, 250))  # Adjust size as needed
 
         # Calculate the position to center the title image
-        self.title_x_pos = (self.screen.get_width() - 400) // 2
+        self.title_x_pos = (self.screen.get_width() - self.title_image.get_width()) // 2  # Centrar la imagen del título
         self.title_y_pos = -50  # Adjust the y position as needed
 
         # Generate stars

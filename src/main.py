@@ -18,6 +18,8 @@ class Main:
             if menu.start_game:
                 game = Game(self.screen, debug_mode=menu.debug_mode)
                 game.run()
+                if game.game_state.is_game_over:
+                    continue  # Volver al menú principal después de la pantalla de Game Over
             else:
                 self.running = False
 
