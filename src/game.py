@@ -1,3 +1,5 @@
+# src/game.py
+
 import pygame
 import sys
 import threading
@@ -8,6 +10,7 @@ from tilemap import TileMap
 from enemy_manager import EnemyManager
 from ui_manager import UIManager
 from animation_manager import AnimationManager
+from game_over_screen import GameOverScreen
 
 class Game:
     def __init__(self, screen):
@@ -74,6 +77,7 @@ class Game:
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     print("Evento de salida detectado")
+                    self.game_state.is_game_over = True
                     return False
                 if event.type == pygame.KEYDOWN and event.key == pygame.K_r:
                     print("Reiniciando juego...")
@@ -115,6 +119,10 @@ class Game:
             self.player.update(delta_time, self.tilemap)
             self.enemy_manager.update(delta_time, self.tilemap)
             self.tilemap.update_camera(self.player.rect.centerx, self.player.rect.centery)
+            
+            # Verificar si la vida del jugador llega a 0
+            if self.player.health <= 0:
+                self.game_state.is_game_over = True
         except Exception as e:
             self.log(f"Error actualizando el juego: {e}")
 
@@ -136,14 +144,16 @@ class Game:
 
     def run(self):
         try:
-            while True:
+            while not self.game_state.is_game_over:
                 delta_time = self.clock.tick(self.settings.FPS) / 1000.0
                 if not self.handle_events():
                     break
                 self.update(delta_time)
                 self.draw()
+                
+            # Mostrar pantalla de Game Over si el juego ha terminado
+            if self.game_state.is_game_over:
+                game_over_screen = GameOverScreen(self.screen, self.game_state, self.player.score)
+                game_over_screen.run()
         except Exception as e:
             self.log(f"Error en el bucle principal: {e}")
-        finally:
-            pygame.quit()
-            sys.exit()
