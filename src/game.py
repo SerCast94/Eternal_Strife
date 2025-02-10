@@ -11,12 +11,22 @@ from enemy_manager import EnemyManager
 from ui_manager import UIManager
 from animation_manager import AnimationManager
 from game_over_screen import GameOverScreen
+import random
 
 class Game:
     def __init__(self, screen):
         self.screen = screen
         self.settings = Settings()
         self.clock = pygame.time.Clock()
+
+        # Generate stars for loading screen
+        self.num_stars = 100
+        self.stars = []
+        for _ in range(self.num_stars):
+            x = random.randint(0, self.settings.screen_width)
+            y = random.randint(0, self.settings.screen_height)
+            radius = random.randint(1, 3)
+            self.stars.append([x, y, radius, random.randint(0, 255)])
         
         # Superficie de renderizado intermedia
         self.render_surface = pygame.Surface(
@@ -57,6 +67,8 @@ class Game:
         # Crear un evento para sincronización
         self.update_event = threading.Event()
 
+
+
     def log(self, message):
         print(message)
         self.show_loading_screen()
@@ -66,6 +78,11 @@ class Game:
             loading_font = pygame.font.SysFont(None, 48)
             loading_text = loading_font.render("Generando nivel...", True, (255, 255, 255))
             self.screen.fill((0, 0, 0))
+
+            # Draw stars
+            for star in self.stars:
+                pygame.draw.circle(self.screen, (255, 255, 255), (star[0], star[1]), star[2])
+
             self.screen.blit(loading_text, (self.settings.screen_width // 2 - loading_text.get_width() // 2,
                                             self.settings.screen_height // 2 - loading_text.get_height() // 2))
             pygame.display.flip()
@@ -116,6 +133,7 @@ class Game:
 
     def update(self, delta_time):
         try:
+            self.game_state.update(delta_time)  # Actualizar el tiempo de juego
             self.player.update(delta_time, self.tilemap)
             self.enemy_manager.update(delta_time, self.tilemap)
             self.tilemap.update_camera(self.player.rect.centerx, self.player.rect.centery)
