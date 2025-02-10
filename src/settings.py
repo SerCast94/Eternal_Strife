@@ -9,7 +9,7 @@ class Settings:
 
         # Configuración del jugador
         self.player_speed = 150
-        self.player_health = 10
+        self.player_health = 100
         self.player_size = (16, 16)  # Asegurarse de que el tamaño del jugador sea consistente
         self.player_scale = 1  # Factor de escala del sprite del jugador
 
