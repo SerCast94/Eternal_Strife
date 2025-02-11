@@ -172,6 +172,6 @@ class RangedEnemy(BaseEnemy):
         direction = pygame.Vector2(player_pos) - pygame.Vector2(self.rect.center)
         if direction.length() > 0:
             direction = direction.normalize()
-        projectile = Projectile(self.settings, self.animation_manager, self.rect.center, player_pos, self.enemy_data['damage'], 200, 'player', 'enemy_projectile_idle')
+        projectile = Projectile(self.settings, self.animation_manager, self.rect.center, player_pos, self.enemy_data['damage'], 50, 'player', 'enemy_projectile_idle')
         self.projectiles.append(projectile)  # Agregar el proyectil a la lista de proyectiles
         self.enemy_manager.add_projectile(projectile)

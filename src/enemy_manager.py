@@ -20,6 +20,8 @@ class EnemyManager:
         self.spawn_rate = self.settings.enemy_spawn_rate
         self.lock = threading.Lock()
         
+        self.multiplicadorRatioSpawn = 1  # Multiplicador de ratio de spawn
+        
         # Spatial grid for collision optimization
         self.cell_size = 64  # Size of each cell in the grid
         self.grid_width = self.settings.map_width * self.settings.tile_size // self.cell_size + 1
@@ -107,8 +109,10 @@ class EnemyManager:
     def update(self, delta_time, tilemap):
         self.time_elapsed += delta_time
         self.spawn_timer += delta_time
-        self.spawn_rate = self.settings.enemy_spawn_rate + self.time_elapsed * 0.01
+        self.spawn_rate = self.settings.enemy_spawn_rate + self.time_elapsed * 0.01 * self.multiplicadorRatioSpawn
         self.delta_time = delta_time  # Actualizar delta time
+        collision_start = pygame.time.get_ticks()
+
 
         if self.spawn_timer >= 1.0 / self.spawn_rate:
             self.spawn_enemy()
@@ -137,6 +141,10 @@ class EnemyManager:
         for projectile in self.projectiles[:]:
             if projectile.update(delta_time, self.player, self):
                 self.projectiles.remove(projectile)
+        
+        collision_time = pygame.time.get_ticks() - collision_start
+        return collision_time
+
 
     def update_thread(self, thread_index):
         while not self.stop_threads:

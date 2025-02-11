@@ -2,7 +2,7 @@ import pygame
 from sprite_object import SpriteObject
 
 class EnemyProjectile(SpriteObject):
-    def __init__(self, settings, animation_manager, position, target_position, damage=10, speed=200):
+    def __init__(self, settings, animation_manager, position, target_position, damage=10, speed=100):
         image = animation_manager.get_animation('enemy_projectile_idle')[0][0]
         super().__init__(image, position, (16, 16), settings)  # Asegúrate de que el tamaño sea correcto
         self.settings = settings

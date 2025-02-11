@@ -21,6 +21,20 @@ class Game:
         self.clock = pygame.time.Clock()
         self.debug_mode = debug_mode
         self.profiler = Profiler() if debug_mode else None
+        
+        self.debug_info = {
+            "fps": 0,
+            "enemy_calc_time": 0,
+            "frame_time": 0,
+            "god_mode": False,
+            # Añadir nuevas métricas
+            "enemy_count": 0,
+            "collision_time": 0,
+            "pathfinding_time": 0,
+            "enemy_render_time": 0,
+            "spatial_grid_time": 0
+        }
+        self.debug_font = pygame.font.SysFont(None, 24)
 
         # Generate stars for loading screen
         self.num_stars = 100
@@ -107,6 +121,11 @@ class Game:
                         self.profiler.show_graphs()
                     if event.key == pygame.K_F2 and self.debug_mode:
                         self.profiler.export_data()
+                    if event.key == pygame.K_h and self.debug_mode:
+                        self.debug_info["god_mode"] = not self.debug_info["god_mode"]
+                        self.player.is_invincible = self.debug_info["god_mode"]
+                    if event.key == pygame.K_F3 and self.debug_mode:
+                        self.enemy_manager.multiplicadorRatioSpawn += 3
                 self.player.handle_input(event)
             return True
         except Exception as e:
@@ -141,19 +160,40 @@ class Game:
 
     def update(self, delta_time):
         try:
+            frame_start = pygame.time.get_ticks()
             if self.debug_mode:
                 self.profiler.start("update_animation_manager")
             self.animation_manager.update(delta_time)  # Actualizar animaciones globalmente
             if self.debug_mode:
                 self.profiler.stop()
-
+                
+            
             if self.debug_mode:
                 self.profiler.start("update_player")
             self.game_state.update(delta_time)  # Actualizar el tiempo de juego
             self.player.update(delta_time, self.tilemap)
             if self.debug_mode:
                 self.profiler.stop()
+                
+            if self.debug_mode:
+                self.profiler.start("enemy_management")
+                # Medir tiempo de actualización del grid espacial
+                spatial_grid_start = pygame.time.get_ticks()
+                self.enemy_manager._update_spatial_grid()
+                self.debug_info["spatial_grid_time"] = pygame.time.get_ticks() - spatial_grid_start
 
+                # Medir tiempo de pathfinding/movimiento
+                pathfinding_start = pygame.time.get_ticks()
+                self.enemy_manager.update(delta_time, self.tilemap)
+                self.debug_info["pathfinding_time"] = pygame.time.get_ticks() - pathfinding_start
+                
+                # Actualizar conteo de enemigos
+                self.debug_info["enemy_count"] = len(self.enemy_manager.enemies)
+
+            if self.debug_mode:
+                self.profiler.stop()
+            
+        
             if self.debug_mode:
                 self.profiler.start("update_enemy_manager")
             self.enemy_manager.update(delta_time, self.tilemap)
@@ -165,12 +205,48 @@ class Game:
             self.tilemap.update_camera(self.player.rect.centerx, self.player.rect.centery)
             if self.debug_mode:
                 self.profiler.stop()
+                
+            if self.debug_mode:
+                self.profiler.start("update_enemy_manager")
+            enemy_calc_start = pygame.time.get_ticks()
+            self.enemy_manager.update(delta_time, self.tilemap)
+            self.debug_info["enemy_calc_time"] = pygame.time.get_ticks() - enemy_calc_start
+            if self.debug_mode:
+                self.profiler.stop()
             
             # Verificar si la vida del jugador llega a 0
-            if self.player.health <= 0:
+            if self.player.health <= 0 and self.debug_info["god_mode"] == False:
                 self.game_state.is_game_over = True
+                
+            self.debug_info["frame_time"] = pygame.time.get_ticks() - frame_start
+            self.debug_info["fps"] = self.clock.get_fps()
         except Exception as e:
             self.log(f"Error actualizando el juego: {e}")
+            
+    def draw_debug_info(self):
+        if not self.debug_mode:
+            return
+        debug_text = [
+            f"FPS: {self.debug_info['fps']:.1f}",
+            f"Enemy Calc Time: {self.debug_info['enemy_calc_time']:.2f}ms",
+            f"Frame Time: {self.debug_info['frame_time']:.2f}ms",
+            f"Enemy Count: {self.debug_info['enemy_count']}",
+            f"Spatial Grid Time: {self.debug_info['spatial_grid_time']:.2f}ms",
+            f"Pathfinding Time: {self.debug_info['pathfinding_time']:.2f}ms",
+            "",
+            "Controles de Debug:",
+            "F1: Mostrar graficos de rendimiento",
+            "F2: Exportar datos de rendimiento",
+            "F3: Aumentar dificultad", 
+            "H: Activar god mode ({})".format("ON" if self.debug_info["god_mode"] else "OFF"),
+            "R: Reiniciar juego"
+            ]
+
+        y_offset = 40
+        for text in debug_text:
+            text_surface = self.debug_font.render(text, True, (255, 255, 255))
+            self.render_surface.blit(text_surface, (570, y_offset))
+            y_offset += 20
 
     def draw(self):
         try:
@@ -179,7 +255,7 @@ class Game:
             self.render_surface.fill((0, 0, 0))
             if self.debug_mode:
                 self.profiler.stop()
-
+                
             # Renderizado de capas base y medium
             if self.debug_mode:
                 self.profiler.start("draw_background")
@@ -209,6 +285,11 @@ class Game:
                 self.profiler.start("draw_ui")
             self.ui_manager.draw(self.render_surface, self.player, self.game_state, self.enemy_manager)
             if self.debug_mode:
+                self.profiler.stop()
+                
+            if self.debug_mode:
+                self.profiler.start("draw_debug")
+                self.draw_debug_info()
                 self.profiler.stop()
 
             # Escalado final y presentación
