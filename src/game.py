@@ -6,6 +6,7 @@ import threading
 from game_state import GameState
 from settings import Settings
 from player import Player
+from profiler import Profiler
 from tilemap import TileMap
 from enemy_manager import EnemyManager
 from ui_manager import UIManager
@@ -179,51 +180,40 @@ class Game:
             if self.debug_mode:
                 self.profiler.stop()
 
+            # Renderizado de capas base y medium
             if self.debug_mode:
-                self.profiler.start("draw_tilemap_base")
-            self.tilemap.draw_base_layer(self.render_surface)
-            if self.debug_mode:
-                self.profiler.stop()
-
-            if self.debug_mode:
-                self.profiler.start("draw_tilemap_medium")
-            self.tilemap.draw_medium_layer(self.render_surface)
+                self.profiler.start("draw_background")
+            self.tilemap.draw_background_layers(self.render_surface)
             if self.debug_mode:
                 self.profiler.stop()
 
+            # Renderizado de entidades
             if self.debug_mode:
-                self.profiler.start("draw_player")
+                self.profiler.start("draw_entities")
             self.player.draw(self.render_surface, self.tilemap.camera_x, self.tilemap.camera_y)
-            if self.debug_mode:
-                self.profiler.stop()
-
-            if self.debug_mode:
-                self.profiler.start("draw_enemy_manager")
             self.enemy_manager.draw(self.render_surface, self.tilemap.camera_x, self.tilemap.camera_y)
-            if self.debug_mode:
-                self.profiler.stop()
-
-            if self.debug_mode:
-                self.profiler.start("draw_items")
             for item in self.enemy_manager.items:
                 item.draw(self.render_surface, self.tilemap.camera_x, self.tilemap.camera_y)
             if self.debug_mode:
                 self.profiler.stop()
 
+            # Renderizado de capa overlay
             if self.debug_mode:
-                self.profiler.start("draw_tilemap_overlay")
-            self.tilemap.draw_overlay_layer(self.render_surface, self.player.rect)
+                self.profiler.start("draw_overlay")
+            self.tilemap.draw_overlay_layer(self.render_surface)
             if self.debug_mode:
                 self.profiler.stop()
 
+            # UI
             if self.debug_mode:
-                self.profiler.start("draw_ui_manager")
+                self.profiler.start("draw_ui")
             self.ui_manager.draw(self.render_surface, self.player, self.game_state, self.enemy_manager)
             if self.debug_mode:
                 self.profiler.stop()
 
+            # Escalado final y presentación
             if self.debug_mode:
-                self.profiler.start("draw_blit_surface")
+                self.profiler.start("draw_final")
             self.screen.blit(pygame.transform.scale(self.render_surface, self.screen.get_size()), (0, 0))
             pygame.display.flip()
             if self.debug_mode:

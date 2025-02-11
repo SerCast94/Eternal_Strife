@@ -227,16 +227,6 @@ class TileMap:
             self.camera_y = max(0, min(self.camera_y,
                 self.settings.map_height * self.settings.tile_size - self.settings.screen_height / self.settings.zoom))
 
-    def draw_base_layer(self, screen: pygame.Surface):
-            # Calcular el desplazamiento para centrar el mapa
-            offset_x = (self.settings.map_width * self.settings.tile_size) // 2
-            offset_y = (self.settings.map_height * self.settings.tile_size) // 2
-
-            # Dibujar la superficie de caché en la pantalla con el desplazamiento
-            screen.blit(self.base_layer_surface, 
-                        (-self.camera_x * self.settings.zoom + offset_x, 
-                        -self.camera_y * self.settings.zoom + offset_y))
-        
     def check_collision(self, rect: pygame.Rect) -> bool:
         tile_x1 = max(0, rect.left // self.settings.tile_size)
         tile_x2 = min(self.settings.map_width - 1, rect.right // self.settings.tile_size)
@@ -256,49 +246,73 @@ class TileMap:
                         return True
         return False
 
-   
-    def draw_medium_layer(self, screen: pygame.Surface):
-        # Calcular qué tiles están en la vista
-        start_x = int(self.camera_x) // self.settings.tile_size
-        start_y = int(self.camera_y) // self.settings.tile_size
-        end_x = start_x + int(self.settings.view_width * self.settings.zoom)
-        end_y = start_y + int(self.settings.view_height * self.settings.zoom)
 
-        # Asegurar que no nos salimos de los límites del mapa
-        start_x = max(0, start_x)
-        start_y = max(0, start_y)
-        end_x = min(self.settings.map_width, end_x)
-        end_y = min(self.settings.map_height, end_y)
+    def draw_background_layers(self, screen: pygame.Surface):
+        """Dibuja las capas base y medium juntas"""
+        if not hasattr(self, 'background_surface') or self.background_surface is None:
+            self.background_surface = pygame.Surface(
+                (self.settings.map_width * self.settings.tile_size * self.settings.zoom,
+                self.settings.map_height * self.settings.tile_size * self.settings.zoom),
+                pygame.SRCALPHA
+            )
+            
+            # Pre-renderizar capa base
+            for y in range(self.settings.map_height):
+                for x in range(self.settings.map_width):
+                    if self.base_layer[y][x] is not None:
+                        pos = (
+                            x * self.settings.tile_size * self.settings.zoom,
+                            y * self.settings.tile_size * self.settings.zoom
+                        )
+                        self.background_surface.blit(self.base_layer[y][x], pos)
+            
+            # Pre-renderizar capa medium
+            for tile in self.medium_layer:
+                pos = (
+                    tile.x * self.settings.tile_size * self.settings.zoom,
+                    tile.y * self.settings.tile_size * self.settings.zoom
+                )
+                self.background_surface.blit(tile.surface, pos)
 
-        # Dibujar capa media
-        for tile in self.medium_layer:
-            if start_x <= tile.x < end_x and start_y <= tile.y < end_y:
-                tile_pos = (tile.x * 16 * self.settings.zoom - int(self.camera_x * self.settings.zoom),
-                            tile.y * 16 * self.settings.zoom - int(self.camera_y * self.settings.zoom))
-                screen.blit(tile.surface, tile_pos)
+        # Calcular la posición correcta centrada
+        offset_x = -self.camera_x * self.settings.zoom
+        offset_y = -self.camera_y * self.settings.zoom
+    
+        screen.blit(self.background_surface, (offset_x, offset_y))
 
-    def draw_overlay_layer(self, screen: pygame.Surface, player_rect: pygame.Rect):
-        # Calcular qué tiles están en la vista
-        start_x = int(self.camera_x) // self.settings.tile_size
-        start_y = int(self.camera_y) // self.settings.tile_size
-        end_x = start_x + int(self.settings.view_width * self.settings.zoom)
-        end_y = start_y + int(self.settings.view_height * self.settings.zoom)
+    def draw_overlay_layer(self, screen: pygame.Surface):
+        """Dibuja la capa overlay con transparencia"""
+        visible_pattern = [tile for tile in self.pattern_tiles
+                        if self.is_tile_visible(tile)]
+        
+        visible_pattern.sort(key=lambda t: t.y)  # Ordenar por profundidad
+        
+        for tile in visible_pattern:
+            pos = (
+                (tile.x * self.settings.tile_size * self.settings.zoom) - (self.camera_x * self.settings.zoom),
+                (tile.y * self.settings.tile_size * self.settings.zoom) - (self.camera_y * self.settings.zoom)
+            )
+            
+            if tile.collidable:
+                screen.blit(tile.surface, pos)
+            else:
+                # Crear una copia con transparencia para tiles no colisionables
+                surface = tile.surface.copy()
+                surface.set_alpha(128)  # 50% de transparencia
+                screen.blit(surface, pos)
 
-        # Asegurar que no nos salimos de los límites del mapa
-        start_x = max(0, start_x)
-        start_y = max(0, start_y)
-        end_x = min(self.settings.map_width, end_x)
-        end_y = min(self.settings.map_height, end_y)
+    def is_tile_visible(self, tile):
+        """Comprueba si un tile está en la pantalla"""
+        tile_x = tile.x * self.settings.tile_size * self.settings.zoom
+        tile_y = tile.y * self.settings.tile_size * self.settings.zoom
+        screen_x = self.camera_x * self.settings.zoom
+        screen_y = self.camera_y * self.settings.zoom
+        
+        return (tile_x + self.settings.tile_size >= screen_x and
+                tile_x <= screen_x + self.settings.screen_width and
+                tile_y + self.settings.tile_size >= screen_y and
+                tile_y <= screen_y + self.settings.screen_height)
 
-        # Dibujar tiles de patrones con transparencia si el jugador está en la misma posición
-        self.pattern_tiles.sort(key=lambda tile: tile.y)
-        for tile in self.pattern_tiles:
-            if start_x <= tile.x < end_x and start_y <= tile.y < end_y:
-                tile_pos = (tile.x * 16 * self.settings.zoom - int(self.camera_x * self.settings.zoom),
-                            tile.y * 16 * self.settings.zoom - int(self.camera_y * self.settings.zoom))
-                if not tile.collidable:
-                    transparent_surface = tile.surface.copy()
-                    transparent_surface.set_alpha(128)
-                    screen.blit(transparent_surface, tile_pos)
-                else:
-                    screen.blit(tile.surface, tile_pos)
+    def draw(self, screen: pygame.Surface, player_rect: pygame.Rect):
+        self.draw_base_layer(screen)
+        self.draw_medium_and_overlay_layers(screen, player_rect)
