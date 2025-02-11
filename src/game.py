@@ -1,8 +1,9 @@
-# src/game.py
-
+from queue import Queue
+import time
 import pygame
 import sys
 import threading
+from concurrent.futures import ThreadPoolExecutor
 from game_state import GameState
 from settings import Settings
 from player import Player
@@ -21,218 +22,360 @@ class Game:
         self.clock = pygame.time.Clock()
         self.debug_mode = debug_mode
         self.profiler = Profiler() if debug_mode else None
-
-        # Generate stars for loading screen
-        self.num_stars = 100
-        self.stars = []
-        for _ in range(self.num_stars):
-            x = random.randint(0, self.settings.screen_width)
-            y = random.randint(0, self.settings.screen_height)
-            radius = random.randint(1, 3)
-            self.stars.append([x, y, radius, random.randint(0, 255)])
+        self.godmode = False
+        self.last_fps = 0
+        self.fps_update_time = 0
+        self.fps_update_interval = 0.5
         
-        # Superficie de renderizado intermedia
+        # Add log messages list initialization
+        self.log_messages = []  # Initialize log messages list
+        
+        # Rest of initialization...
+        self.collision_thread = None
+        self.collision_queue = Queue()
+        self.collision_results = Queue()
+        self.collision_event = threading.Event()
+        self.collision_running = True
+        self.update_thread_pool = ThreadPoolExecutor(max_workers=4)
+
+        self.frame_start_time = 0
+        self.frame_end_time = 0
+        self.target_frame_time = 1.0 / 60.0  # Target 60 FPS
+        self.thread_sync_event = threading.Event()
+        
+        # Rendering optimization
         self.render_surface = pygame.Surface(
-            (self.settings.screen_width, self.settings.screen_height))
+            (self.settings.screen_width, self.settings.screen_height)
+        ).convert_alpha()
+        
+        # Pre-render surfaces
+        self.background_surface = pygame.Surface(
+            (self.settings.screen_width, self.settings.screen_height)
+        ).convert_alpha()
+        
+        # Batch rendering buffers
+        self.entity_buffer = []
+        self.visible_entities_cache = []
+        self.last_camera_pos = None
+        
+        # Start collision thread
+        self.collision_thread = threading.Thread(target=self._collision_worker)
+        self.collision_thread.daemon = True
+        self.collision_thread.start()
 
-        # Mostrar pantalla de carga
-        self.show_loading_screen()
+        self._init_game_components()
 
-        # Inicializar componentes del juego
-        self.log("Inicializando GameState...")
-        self.game_state = GameState()
-        self.log("GameState inicializado")
-
-        self.log("Inicializando AnimationManager...")
-        self.animation_manager = AnimationManager(self.settings)
-        self.log("AnimationManager inicializado")
-
-        self.log("Inicializando TileMap...")
-        self.tilemap = TileMap(self.settings)
-        self.tilemap.generate()
-        self.log("TileMap inicializado")
-
-        self.log("Inicializando EnemyManager...")
-        self.enemy_manager = EnemyManager(self.settings, None, self.animation_manager, self.tilemap)
-        self.log("EnemyManager inicializado")
-
-        self.log("Inicializando Player...")
-        self.player = Player(self.settings, self.animation_manager, self.enemy_manager)
-        self.enemy_manager.player = self.player  # Asignar el jugador al EnemyManager
-        self.log("Player inicializado")
-
-        self.log("Inicializando UIManager...")
-        self.ui_manager = UIManager(self.settings)
-        self.log("UIManager inicializado")
-
-        self.log("Juego inicializado correctamente")
-
-        # Crear un evento para sincronización
-        self.update_event = threading.Event()
-
-
-
-    def log(self, message):
-        print(message)
-        self.show_loading_screen()
-
-    def show_loading_screen(self):
+    def _init_game_components(self):
+        """Initialize game components with proper error handling"""
         try:
-            loading_font = pygame.font.SysFont(None, 48)
-            loading_text = loading_font.render("Generando nivel...", True, (255, 255, 255))
-            self.screen.fill((0, 0, 0))
-
-            # Draw stars
-            for star in self.stars:
-                pygame.draw.circle(self.screen, (255, 255, 255), (star[0], star[1]), star[2])
-
-            self.screen.blit(loading_text, (self.settings.screen_width // 2 - loading_text.get_width() // 2,
-                                            self.settings.screen_height // 2 - loading_text.get_height() // 2))
-            pygame.display.flip()
-        except Exception as e:
-            print(f"Error mostrando la pantalla de carga: {e}")
-
-    def handle_events(self):
-        try:
-            for event in pygame.event.get():
-                if event.type == pygame.QUIT:
-                    print("Evento de salida detectado")
-                    self.game_state.is_game_over = True
-                    return False
-                if event.type == pygame.KEYDOWN:
-                    if event.key == pygame.K_r:
-                        print("Reiniciando juego...")
-                        self.restart_game()
-                    if event.key == pygame.K_F1 and self.debug_mode:
-                        self.profiler.show_graphs()
-                    if event.key == pygame.K_F2 and self.debug_mode:
-                        self.profiler.export_data()
-                self.player.handle_input(event)
-            return True
-        except Exception as e:
-            print(f"Error manejando eventos: {e}")
-            return False
-
-    def restart_game(self):
-        try:
-            print("Reiniciando componentes del juego...")
-            # Mostrar pantalla de carga
-            self.show_loading_screen()
-            
-            # Regenerar el mapa
-            self.log("Regenerando el mapa...")
+            self.game_state = GameState()
+            self.animation_manager = AnimationManager(self.settings)
             self.tilemap = TileMap(self.settings)
             self.tilemap.generate()
-            self.log("Mapa regenerado")
-            
-            # Reiniciar jugador
-            self.log("Reiniciando jugador...")
+            self.enemy_manager = EnemyManager(self.settings, None, self.animation_manager, self.tilemap)
             self.player = Player(self.settings, self.animation_manager, self.enemy_manager)
-            self.log("Jugador reiniciado")
-            
-            # Reiniciar enemigos
-            self.log("Reiniciando EnemyManager...")
-            self.enemy_manager = EnemyManager(self.settings, self.player, self.animation_manager, self.tilemap)
-            self.log("EnemyManager reiniciado")
-            
-            self.log("Componentes del juego reiniciados correctamente")
+            self.enemy_manager.player = self.player
+            self.ui_manager = UIManager(self.settings)
         except Exception as e:
-            self.log(f"Error reiniciando el juego: {e}")
+            self.log(f"Error initializing game components: {e}")
+            raise
+
+    def _collision_worker(self):
+        """Dedicated thread for collision processing"""
+        while self.collision_running:
+            try:
+                if not self.collision_queue.empty():
+                    collision_data = self.collision_queue.get()
+                    results = self.enemy_manager.process_collisions(
+                        collision_data["enemies"],
+                        collision_data["player"]
+                    )
+                    self.collision_results.put(results)
+                    self.collision_event.set()
+                else:
+                    time.sleep(0.001)
+            except Exception as e:
+                self.log(f"Error in collision thread: {e}")
 
     def update(self, delta_time):
         try:
-            if self.debug_mode:
-                self.profiler.start("update_animation_manager")
-            self.animation_manager.update(delta_time)  # Actualizar animaciones globalmente
-            if self.debug_mode:
-                self.profiler.stop()
+            self.delta_time = delta_time
 
-            if self.debug_mode:
-                self.profiler.start("update_player")
-            self.game_state.update(delta_time)  # Actualizar el tiempo de juego
+            # Queue collision processing in separate thread
+            self.collision_queue.put({
+                "enemies": self.enemy_manager.enemies,
+                "player": self.player
+            })
+
+            # Update game state synchronously
+            self.game_state.update(delta_time)
+            self.animation_manager.update(delta_time)
             self.player.update(delta_time, self.tilemap)
-            if self.debug_mode:
-                self.profiler.stop()
-
-            if self.debug_mode:
-                self.profiler.start("update_enemy_manager")
             self.enemy_manager.update(delta_time, self.tilemap)
-            if self.debug_mode:
-                self.profiler.stop()
 
-            if self.debug_mode:
-                self.profiler.start("update_tilemap")
+            # Process collision results if available
+            if self.collision_event.is_set():
+                self._apply_collision_results(self.collision_results.get())
+                self.collision_event.clear()
+
+            # Update camera
             self.tilemap.update_camera(self.player.rect.centerx, self.player.rect.centery)
-            if self.debug_mode:
-                self.profiler.stop()
-            
-            # Verificar si la vida del jugador llega a 0
-            if self.player.health <= 0:
+
+            if not self.godmode and self.player.health <= 0:
                 self.game_state.is_game_over = True
+
         except Exception as e:
-            self.log(f"Error actualizando el juego: {e}")
+            self.log(f"Error updating game: {e}")
 
     def draw(self):
         try:
             if self.debug_mode:
-                self.profiler.start("draw_clear_surface")
+                self.profiler.start("draw_full")
+
+            # Clear render surface
             self.render_surface.fill((0, 0, 0))
-            if self.debug_mode:
-                self.profiler.stop()
 
-            # Renderizado de capas base y medium
-            if self.debug_mode:
-                self.profiler.start("draw_background")
+            # Draw background and tilemap layers
             self.tilemap.draw_background_layers(self.render_surface)
-            if self.debug_mode:
-                self.profiler.stop()
 
-            # Renderizado de entidades
-            if self.debug_mode:
-                self.profiler.start("draw_entities")
-            self.player.draw(self.render_surface, self.tilemap.camera_x, self.tilemap.camera_y)
-            self.enemy_manager.draw(self.render_surface, self.tilemap.camera_x, self.tilemap.camera_y)
-            for item in self.enemy_manager.items:
-                item.draw(self.render_surface, self.tilemap.camera_x, self.tilemap.camera_y)
-            if self.debug_mode:
-                self.profiler.stop()
+            # Get all visible entities and sort them by Y position for proper layering
+            visible_entities = []
+            
+            # Add visible enemies
+            for enemy in self.enemy_manager.enemies:
+                screen_x = (enemy.rect.x - self.tilemap.camera_x) * self.settings.zoom
+                screen_y = (enemy.rect.y - self.tilemap.camera_y) * self.settings.zoom
+                if (0 <= screen_x <= self.settings.screen_width and 
+                    0 <= screen_y <= self.settings.screen_height):
+                    visible_entities.append((enemy, enemy.rect.bottom))
 
-            # Renderizado de capa overlay
-            if self.debug_mode:
-                self.profiler.start("draw_overlay")
+            # Add visible projectiles
+            for projectile in self.enemy_manager.projectile_pool.active_projectiles:
+                screen_x = (projectile.rect.x - self.tilemap.camera_x) * self.settings.zoom
+                screen_y = (projectile.rect.y - self.tilemap.camera_y) * self.settings.zoom
+                if (0 <= screen_x <= self.settings.screen_width and 
+                    0 <= screen_y <= self.settings.screen_height):
+                    visible_entities.append((projectile, projectile.rect.bottom))
+
+            # Add player
+            visible_entities.append((self.player, self.player.rect.bottom))
+
+            # Sort all entities by Y position (bottom) for proper layering
+            visible_entities.sort(key=lambda x: x[1])
+
+            # Draw all entities in order
+            for entity, _ in visible_entities:
+                entity.draw(self.render_surface, self.tilemap.camera_x, self.tilemap.camera_y)
+
+            # Draw overlay layers (like tiles that should be in front)
             self.tilemap.draw_overlay_layer(self.render_surface)
-            if self.debug_mode:
-                self.profiler.stop()
 
-            # UI
-            if self.debug_mode:
-                self.profiler.start("draw_ui")
+            # Draw UI
             self.ui_manager.draw(self.render_surface, self.player, self.game_state, self.enemy_manager)
+
+            if self.debug_mode:
+                self.draw_debug_info()
+
+            # Scale and display final render
+            pygame.transform.scale(
+                self.render_surface,
+                (self.settings.screen_width, self.settings.screen_height),
+                self.screen
+            )
+            pygame.display.flip()
+
             if self.debug_mode:
                 self.profiler.stop()
 
-            # Escalado final y presentación
-            if self.debug_mode:
-                self.profiler.start("draw_final")
-            self.screen.blit(pygame.transform.scale(self.render_surface, self.screen.get_size()), (0, 0))
-            pygame.display.flip()
-            if self.debug_mode:
-                self.profiler.stop()
         except Exception as e:
-            self.log(f"Error dibujando el juego: {e}")
+            self.log(f"Error drawing game: {e}")
+
+    def _apply_collision_results(self, collision_results):
+        """Apply collision results from the collision thread"""
+        try:
+            for collision_type, obj1, obj2 in collision_results:
+                if collision_type == "enemy-enemy":
+                    # Calculate push direction
+                    direction = pygame.Vector2(
+                        obj1.rect.centerx - obj2.rect.centerx,
+                        obj1.rect.centery - obj2.rect.centery
+                    )
+                    if direction.length() > 0:
+                        direction.normalize_ip()
+                        push_strength = 2.0  # Reduced from 5.0 for smoother movement
+                        
+                        # Push both enemies apart
+                        obj1.move(
+                            obj1.rect.x + direction.x * push_strength,
+                            obj1.rect.y + direction.y * push_strength
+                        )
+                        obj2.move(
+                            obj2.rect.x - direction.x * push_strength,
+                            obj2.rect.y - direction.y * push_strength
+                        )
+                
+                elif collision_type == "enemy-player" and not self.godmode:
+                    # Apply damage to player
+                    self.player.health -= obj1.damage * self.delta_time
+                    
+                    # Push player away from enemy
+                    direction = pygame.Vector2(
+                        self.player.rect.centerx - obj1.rect.centerx,
+                        self.player.rect.centery - obj1.rect.centery
+                    )
+                    if direction.length() > 0:
+                        direction.normalize_ip()
+                        self.player.move(
+                            self.player.rect.x + direction.x * 3.0,
+                            self.player.rect.y + direction.y * 3.0
+                        )
+        
+        except Exception as e:
+            self.log(f"Error applying collision results: {e}")
+
+    def _get_visible_entities(self):
+        """Get entities within the camera view with spatial optimization"""
+        camera_rect = pygame.Rect(
+            self.tilemap.camera_x - self.settings.culling_margin,
+            self.tilemap.camera_y - self.settings.culling_margin,
+            self.settings.screen_width + self.settings.culling_margin * 2,
+            self.settings.screen_height + self.settings.culling_margin * 2
+        )
+
+        visible_entities = []
+        cells = self.enemy_manager.get_active_cells_in_view(camera_rect)
+        
+        for cell in cells:
+            for enemy in self.enemy_manager.spatial_grid.get(cell, []):
+                if camera_rect.colliderect(enemy.rect):
+                    visible_entities.append(enemy)
+
+        return visible_entities
+
+    def cleanup(self):
+        """Clean up resources and threads"""
+        self.collision_running = False
+        if self.collision_thread:
+            self.collision_thread.join(timeout=1.0)
+        self.update_thread_pool.shutdown(wait=True)
 
     def run(self):
+        """Main game loop"""
         try:
+            self.clock.tick()  # Initial tick to prevent first huge delta
+            last_update_time = time.time()
+            
             while not self.game_state.is_game_over:
-                delta_time = self.clock.tick(self.settings.FPS) / 1000.0
-                if not self.handle_events():
-                    break
+                self.frame_start_time = time.time()
+                
+                # Calculate frame timing
+                current_time = time.time()
+                frame_time = current_time - last_update_time
+                
+                # Force synchronization with target frame rate
+                if frame_time < self.target_frame_time:
+                    time.sleep(self.target_frame_time - frame_time)
+                    current_time = time.time()
+                    frame_time = current_time - last_update_time
+                
+                last_update_time = current_time
+                
+                # Handle events
+                for event in pygame.event.get():
+                    if event.type == pygame.QUIT:
+                        pygame.quit()
+                        sys.exit()
+                    elif event.type == pygame.KEYDOWN:
+                        if event.key == pygame.K_ESCAPE:
+                            self.game_state.is_game_over = True
+                        elif event.key == pygame.K_F1 and self.debug_mode:
+                            self.profiler.show_graphs()
+                        elif event.key == pygame.K_F2 and self.debug_mode:
+                            self.profiler.export_data()
+                        elif event.key == pygame.K_g and self.debug_mode:
+                            self.godmode = not self.godmode
+                    self.player.handle_input(event)
+
+                # Calculate delta time with hard cap
+                delta_time = min(frame_time, 0.1)
+                
+                # Signal threads to start processing this frame
+                self.thread_sync_event.set()
+                
+                # Update game state
                 self.update(delta_time)
+                
+                # Wait for collision thread to finish if it's still processing
+                if self.collision_event.is_set():
+                    self._apply_collision_results(self.collision_results.get())
+                    self.collision_event.clear()
+                
+                # Draw frame
                 self.draw()
                 
-            # Mostrar pantalla de Game Over si el juego ha terminado
-            if self.game_state.is_game_over:
-                game_over_screen = GameOverScreen(self.screen, self.game_state, self.player.score)
-                game_over_screen.run()
+                # Reset thread sync event for next frame
+                self.thread_sync_event.clear()
+
+                # Update debug metrics
+                if self.debug_mode:
+                    current_time = time.time()
+                    if current_time - self.fps_update_time >= self.fps_update_interval:
+                        self.last_fps = 1.0 / frame_time if frame_time > 0 else 0
+                        self.fps_update_time = current_time
+                        if self.profiler:
+                            self.profiler.add_metric("fps", self.last_fps)
+                            self.profiler.add_metric("enemy_count", len(self.enemy_manager.enemies))
+                            self.profiler.add_metric("frame_time", frame_time * 1000)
+                            self.profiler.add_metric("thread_sync_time", 
+                                (time.time() - self.frame_start_time) * 1000)
+
+                # Ensure we don't exceed target frame rate
+                self.frame_end_time = time.time()
+                total_frame_time = self.frame_end_time - self.frame_start_time
+                if total_frame_time < self.target_frame_time:
+                    time.sleep(self.target_frame_time - total_frame_time)
+
+            # Show game over screen
+            game_over = GameOverScreen(self.screen, self.game_state, self.player.score)
+            game_over.run()
+            
+            # Cleanup
+            self.cleanup()
+
         except Exception as e:
-            self.log(f"Error en el bucle principal: {e}")
+            self.log(f"Error in game loop: {e}")
+
+    def log(self, message):
+        """Log a debug message"""
+        if self.debug_mode:
+            print(f"[DEBUG] {message}")
+            self.log_messages.append(message)
+            
+            # Keep only last 100 messages to avoid memory issues
+            if len(self.log_messages) > 100:
+                self.log_messages.pop(0)
+
+    def draw_debug_info(self):
+        """Draw debug information on screen"""
+        if not self.debug_mode:
+            return
+            
+        font = pygame.font.Font(None, 24)
+        y = 100
+        
+        # Display FPS
+        fps_text = font.render(f"FPS: {int(self.last_fps)}", True, (255, 255, 255))
+        self.render_surface.blit(fps_text, (10, y))
+        y += 20
+        
+        # Display enemy count
+        enemy_count = len(self.enemy_manager.enemies)
+        enemy_text = font.render(f"Enemies: {enemy_count}", True, (255, 255, 255))
+        self.render_surface.blit(enemy_text, (10, y))
+        y += 20
+        
+        # Display last few log messages
+        for message in self.log_messages[-5:]:
+            text = font.render(message[:50], True, (255, 255, 255))
+            self.render_surface.blit(text, (10, y))
+            y += 20

@@ -11,6 +11,14 @@ class Main:
         self.clock = pygame.time.Clock()
         self.running = True
 
+        # Optimizar PyGame
+        pygame.display.set_mode((800, 600), pygame.HWSURFACE | pygame.DOUBLEBUF)
+        pygame.event.set_allowed([pygame.QUIT, pygame.KEYDOWN, pygame.KEYUP])
+        
+        # Threads para rendering
+        if hasattr(pygame, 'set_num_threads'):
+            pygame.set_num_threads(4)
+
     def run(self):
         while self.running:
             menu = Menu(self.screen)

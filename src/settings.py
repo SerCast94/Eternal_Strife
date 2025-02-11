@@ -7,6 +7,17 @@ class Settings:
         self.screen_height = 600
         self.FPS = 60
 
+        # Optimización de rendering
+        self.enable_vsync = False
+        self.max_fps = 120
+
+        self.culling_margin = 64
+        self.max_visible_entities = 1000
+        self.enable_threading = True
+        self.thread_pool_size = 4
+
+        self.max_delta_time = 0.1  # Maximum allowed delta time
+
         # Configuración del jugador
         self.player_speed = 150
         self.player_health = 100
@@ -23,8 +34,11 @@ class Settings:
         
         # Configuración de optimización
         self.max_enemies = 1000  # Límite máximo de enemigos
-        self.enemy_culling_distance = 800  # Distancia para culling de enemigos
-        self.collision_check_frequency = 10  # Frames entre chequeos de colisión
+
+          # Optimización de enemigos
+        self.enemy_culling_distance = 600  # Reducido de 800
+        self.collision_check_frequency = 15  # Reducida frecuencia de chequeo
+        self.max_active_projectiles = 200
 
         # Configuración del mapa
         self.tile_size = 16  # Asegurarse de que el tamaño de los tiles sea consistente
@@ -32,6 +46,12 @@ class Settings:
         self.map_height = 150
         self.view_width = self.screen_width // self.tile_size + 2
         self.view_height = self.screen_height // self.tile_size + 2
+
+         # Debug and optimization settings
+        self.show_culling = False  # Add this line
+
+        self.view_padding = 100  # Pixels to pad the visible area
+        self.culling_enabled = True  # Enable visibility culling
 
         # Configuración de zoom
         self.zoom = 2  # Factor de zoom inicial

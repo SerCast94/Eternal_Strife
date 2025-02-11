@@ -16,6 +16,7 @@ class Projectile(SpriteObject):
         self.current_frame = 0
         self.time_accumulator = 0
         self.update_frequency = 0.1  # Frecuencia de actualización de la animación
+        self.puntoDeIOrigen = position
 
     def calculate_velocity(self, speed):
         direction = self.target_position - pygame.Vector2(self.rect.center)
@@ -38,6 +39,14 @@ class Projectile(SpriteObject):
                     if enemy.take_damage(self.damage):
                         enemy_manager.remove_enemy(enemy)
                     return True  # El proyectil se destruye al impactar
+        
+        # Replace the distance_to check with a manual distance calculation
+        dx = self.rect.centerx - self.puntoDeIOrigen[0]
+        dy = self.rect.centery - self.puntoDeIOrigen[1]
+        distance = (dx * dx + dy * dy) ** 0.5
+        
+        if distance > 200:
+            return True  # Projectile should be destroyed
 
         # Actualizar animación
         self.time_accumulator += delta_time
@@ -54,3 +63,20 @@ class Projectile(SpriteObject):
     def is_off_screen(self):
         return (self.rect.centerx < 0 or self.rect.centerx > self.settings.map_width * self.settings.tile_size or
                 self.rect.centery < 0 or self.rect.centery > self.settings.map_height * self.settings.tile_size)
+    
+    def reset(self, settings, animation_manager, position, target_position, damage, speed, target_type, animation_name):
+        """Reset projectile for reuse from pool"""
+        self.settings = settings
+        self.animation_manager = animation_manager
+        self.rect.center = position
+        self.target_position = pygame.Vector2(target_position)
+        self.velocity = self.calculate_velocity(speed)
+        self.damage = damage
+        self.target_type = target_type
+        self.animation_name = animation_name
+        self.frames = self.animation_manager.get_animation(animation_name)
+        self.current_frame = 0
+        self.time_accumulator = 0
+        self.update_frequency = 0.1
+        self.puntoDeIOrigen = position
+        self.image = self.frames[self.current_frame][0]

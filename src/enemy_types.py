@@ -17,32 +17,37 @@ class SlimeEnemy(BaseEnemy):
         self.enemy_manager = enemy_manager
 
     def update_behavior(self, delta_time, tilemap, player_pos):
-        # Comportamiento básico del slime: perseguir al jugador y evitar obstáculos
+        # Clamp delta_time
+        delta_time = min(delta_time, 0.1)
+        
+        # Calculate direction to player
         to_player = pygame.Vector2(player_pos) - pygame.Vector2(self.rect.center)
         if to_player.length() > 0:
             to_player = to_player.normalize()
 
-        # Detectar obstáculos
+        # Get avoidance force
         avoid_force = self._detect_obstacles(tilemap)
         
-        # Combinar fuerzas
+        # Combine forces with clamped magnitude
         steering = to_player + avoid_force
         if steering.length() > 0:
             steering = steering.normalize()
             
-        # Guardar la posición anterior
-        old_position = self.rect.topleft
+        # Move separately in X and Y to prevent diagonal speed boost
+        old_x = self.rect.x
+        old_y = self.rect.y
         
-        # Intentar mover
+        # Move X
         new_x = self.rect.x + steering.x * self.speed * delta_time
-        new_y = self.rect.y + steering.y * self.speed * delta_time
-        self.move(new_x, new_y)
-        
-        # Verificar colisiones y límites
+        self.move(new_x, old_y)
         if tilemap.check_collision(self.hitbox):
-            self.move(old_position[0], old_position[1])
-            # Intentar moverse en una dirección diferente si hay colisión
-            self._resolve_stuck(tilemap)
+            self.move(old_x, old_y)
+            
+        # Move Y    
+        new_y = self.rect.y + steering.y * self.speed * delta_time
+        self.move(self.rect.x, new_y)
+        if tilemap.check_collision(self.hitbox):
+            self.move(self.rect.x, old_y)
 
     def _detect_obstacles(self, tilemap):
         directions = [
@@ -168,10 +173,14 @@ class RangedEnemy(BaseEnemy):
                 break
 
     def attack(self, player_pos):
-        # Crear un proyectil dirigido al jugador
-        direction = pygame.Vector2(player_pos) - pygame.Vector2(self.rect.center)
-        if direction.length() > 0:
-            direction = direction.normalize()
-        projectile = Projectile(self.settings, self.animation_manager, self.rect.center, player_pos, self.enemy_data['damage'], 200, 'player', 'enemy_projectile_idle')
-        self.projectiles.append(projectile)  # Agregar el proyectil a la lista de proyectiles
-        self.enemy_manager.add_projectile(projectile)
+        projectile_args = (
+            self.settings,
+            self.animation_manager, 
+            self.rect.center,
+            player_pos,
+            self.enemy_data['damage'],
+            200,  # velocidad
+            'player',  # target_type
+            'enemy_projectile_idle'  # animation_name
+        )
+        self.enemy_manager.add_projectile(*projectile_args)

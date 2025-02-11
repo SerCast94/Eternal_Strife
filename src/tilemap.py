@@ -247,38 +247,25 @@ class TileMap:
         return False
 
 
-    def draw_background_layers(self, screen: pygame.Surface):
-        """Dibuja las capas base y medium juntas"""
-        if not hasattr(self, 'background_surface') or self.background_surface is None:
-            self.background_surface = pygame.Surface(
-                (self.settings.map_width * self.settings.tile_size * self.settings.zoom,
-                self.settings.map_height * self.settings.tile_size * self.settings.zoom),
-                pygame.SRCALPHA
-            )
+    def draw_background_layers(self, screen):
+        try:
+            # Calculate visible area
+            start_x = max(0, int(self.camera_x // self.settings.tile_size))
+            start_y = max(0, int(self.camera_y // self.settings.tile_size))
+            end_x = min(self.settings.map_width, 
+                    int((self.camera_x + self.settings.screen_width) // self.settings.tile_size + 1))
+            end_y = min(self.settings.map_height,
+                    int((self.camera_y + self.settings.screen_height) // self.settings.tile_size + 1))
             
-            # Pre-renderizar capa base
-            for y in range(self.settings.map_height):
-                for x in range(self.settings.map_width):
-                    if self.base_layer[y][x] is not None:
-                        pos = (
-                            x * self.settings.tile_size * self.settings.zoom,
-                            y * self.settings.tile_size * self.settings.zoom
-                        )
-                        self.background_surface.blit(self.base_layer[y][x], pos)
-            
-            # Pre-renderizar capa medium
-            for tile in self.medium_layer:
-                pos = (
-                    tile.x * self.settings.tile_size * self.settings.zoom,
-                    tile.y * self.settings.tile_size * self.settings.zoom
-                )
-                self.background_surface.blit(tile.surface, pos)
-
-        # Calcular la posición correcta centrada
-        offset_x = -self.camera_x * self.settings.zoom
-        offset_y = -self.camera_y * self.settings.zoom
-    
-        screen.blit(self.background_surface, (offset_x, offset_y))
+            # Draw only visible tiles
+            for y in range(start_y, end_y):
+                for x in range(start_x, end_x):
+                    if self.base_layer[y][x]:
+                        screen_x = (x * self.settings.tile_size - self.camera_x) * self.settings.zoom
+                        screen_y = (y * self.settings.tile_size - self.camera_y) * self.settings.zoom
+                        screen.blit(self.base_layer[y][x], (screen_x, screen_y))
+        except Exception as e:
+            print(f"Error drawing background layers: {e}")
 
     def draw_overlay_layer(self, screen: pygame.Surface):
         """Dibuja la capa overlay con transparencia"""

@@ -64,39 +64,48 @@ class Player(AnimatedSprite):
                 self.change_animation(self.animations["idle"])
                 
     def update(self, delta_time, tilemap):
+        # Clamp delta_time to prevent huge jumps
+        delta_time = min(delta_time, 0.1)  # Maximum 100ms frame time
+        
         super().update(delta_time)
         
-        # Update movement
+        # Update movement with clamped velocity
         if self.velocity.length() > 0:
             self.velocity = self.velocity.normalize()
             
-        # Calculate new position    
+        # Calculate new position with clamped movement    
         new_x = self.rect.x + self.velocity.x * self.settings.player_speed * delta_time
         new_y = self.rect.y + self.velocity.y * self.settings.player_speed * delta_time
         
-        # Store old position
-        old_position = self.rect.topleft
+        # Try to move X and Y separately to prevent diagonal speed boost
+        old_x = self.rect.x
+        old_y = self.rect.y
         
-        # Try to move
-        self.move(new_x, new_y)
-        
-        # Check collisions and bounds
+        # Move X
+        self.move(new_x, old_y)
         if tilemap.check_collision(self.hitbox):
-            self.move(old_position[0], old_position[1])
+            self.move(old_x, old_y)
+            
+        # Move Y
+        self.move(self.rect.x, new_y)
+        if tilemap.check_collision(self.hitbox):
+            self.move(self.rect.x, old_y)
         
         # Keep in bounds    
-        new_x = max(0, min(self.rect.x,
-            self.settings.map_width * self.settings.tile_size - self.settings.player_size[0]))
-        new_y = max(0, min(self.rect.y,
-            self.settings.map_height * self.settings.tile_size - self.settings.player_size[1]))
-        self.move(new_x, new_y)
+        self.rect.x = max(0, min(self.rect.x,
+            self.settings.map_width * self.settings.tile_size - self.rect.width))
+        self.rect.y = max(0, min(self.rect.y,
+            self.settings.map_height * self.settings.tile_size - self.rect.height))
+        
+        # Update hitbox
+        self.hitbox.center = self.rect.center
 
-        # Actualizar ataques
+        # Update attacks
         for attack in self.attacks:
             attack.update(delta_time)
-            attack.attack()  # Lanzar ataque automáticamente después del cooldown
+            attack.attack()
 
-        # Recoger ítems
+        # Collect items
         self.collect_items(self.enemy_manager.items)
 
     def draw(self, screen, camera_x, camera_y):

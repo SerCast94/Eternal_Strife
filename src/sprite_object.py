@@ -1,6 +1,9 @@
 import pygame
 
 class SpriteObject(pygame.sprite.Sprite):
+    # Class-level sprite cache
+    _sprite_cache = {}  # Mover esto fuera del __init__
+    
     def __init__(self, image, position, size, settings, scale=1.0):
         super().__init__()
         self.settings = settings
@@ -16,5 +19,23 @@ class SpriteObject(pygame.sprite.Sprite):
         self.hitbox.center = self.rect.center
 
     def draw(self, screen, camera_x, camera_y):
-        scaled_image = pygame.transform.scale(self.image, (int(self.rect.width * self.settings.zoom), int(self.rect.height * self.settings.zoom)))
-        screen.blit(scaled_image, (self.rect.x * self.settings.zoom - camera_x * self.settings.zoom, self.rect.y * self.settings.zoom - camera_y * self.settings.zoom))
+        screen_x = (self.rect.x - camera_x) * self.settings.zoom
+        screen_y = (self.rect.y - camera_y) * self.settings.zoom
+        
+        if (0 <= screen_x <= self.settings.screen_width and 
+            0 <= screen_y <= self.settings.screen_height):
+            scaled_image = self.get_cached_sprite(self.image, self.settings.zoom)
+            screen.blit(scaled_image, (screen_x, screen_y))
+
+    @classmethod
+    def get_cached_sprite(cls, original_surface, scale):
+        """Get a cached scaled sprite or create and cache a new one"""
+        cache_key = (original_surface, scale)
+        if cache_key not in cls._sprite_cache:
+            scaled = pygame.transform.scale(
+                original_surface, 
+                (int(original_surface.get_width() * scale),
+                 int(original_surface.get_height() * scale))
+            )
+            cls._sprite_cache[cache_key] = scaled
+        return cls._sprite_cache[cache_key]
