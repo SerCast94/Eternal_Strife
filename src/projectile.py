@@ -1,10 +1,11 @@
 import pygame
 from sprite_object import SpriteObject
+import game
 
 class Projectile(SpriteObject):
-    def __init__(self, settings, animation_manager, position, target_position, damage, speed, target_type, animation_name):
+    def __init__(self, settings, animation_manager, position, target_position, damage, speed, target_type, animation_name,game):
         image = animation_manager.get_animation(animation_name)[0][0]
-        super().__init__(image, position, (16, 16), settings)
+        super().__init__(image, position, (16, 16), settings, game)
         self.settings = settings
         self.target_position = pygame.Vector2(target_position)
         self.velocity = self.calculate_velocity(speed)
@@ -24,8 +25,8 @@ class Projectile(SpriteObject):
             direction = direction.normalize()
         return direction * speed
 
-    def update(self, delta_time, player, enemy_manager):
-        self.rect.center += self.velocity * delta_time
+    def update(self, player, enemy_manager):
+        self.rect.center += self.velocity * self.game.delta_time
 
         if self.target_type == 'player':
             # Verificar colisión con el jugador
@@ -49,7 +50,7 @@ class Projectile(SpriteObject):
             return True  # Projectile should be destroyed
 
         # Actualizar animación
-        self.time_accumulator += delta_time
+        self.time_accumulator += self.game.delta_time
         if self.time_accumulator >= self.update_frequency:
             self.time_accumulator -= self.update_frequency
             self.current_frame = (self.current_frame + 1) % len(self.frames)

@@ -3,11 +3,13 @@ import os
 from sprite_object import SpriteObject
 
 class AnimationManager:
-    def __init__(self, settings):
+    def __init__(self, settings, game):
         self.settings = settings
+        self.game = game  # Referencia al juego
         self.animations = self.load_animations(settings.animation_configs)
         self.cache = {}  # Caché para almacenar frames de animación
         self.global_time = 0  # Tiempo global para sincronizar animaciones
+        self.paused = False  # Add pause state
 
     def load_animations(self, config):
         animations = {}
@@ -31,8 +33,9 @@ class AnimationManager:
         self.cache[name] = animation
         return animation
 
-    def update(self, delta_time):
-        self.global_time += delta_time
+    def update(self):
+        if not self.paused:  # Only update time if not paused
+            self.global_time += self.game.delta_time
 
     def get_current_frame(self, animation_name):
         frames = self.get_animation(animation_name)
@@ -46,16 +49,24 @@ class AnimationManager:
             if elapsed_time >= current_time:
                 return frame
         return frames[0][0]  # Default to the first frame if something goes wrong
+    
+    def pause(self):
+        self.paused = True
+
+    def resume(self):
+        self.paused = False
 
 class AnimatedSprite(SpriteObject):
-    def __init__(self, animation_manager, animation_name, position, size, settings, update_frequency=0.1):
+    def __init__(self, animation_manager, animation_name, position, size, settings,game, update_frequency=0.1):
         self.animation_manager = animation_manager
+        self.game = game  # Referencia al juego
         self.animation_name = animation_name
         self.frames = self.animation_manager.get_animation(animation_name)
         self.current_frame = 0
         self.time_accumulator = 0
+        self.paused = False  # Add pause state
         self.update_frequency = update_frequency  # Frecuencia de actualización de la animación
-        super().__init__(self.frames[self.current_frame][0], position, size, settings)
+        super().__init__(self.frames[self.current_frame][0], position, size, settings,self.game)
 
     def change_animation(self, animation_name):
         if self.animation_name != animation_name:
@@ -80,9 +91,17 @@ class AnimatedSprite(SpriteObject):
             self.rect = self.image.get_rect(center=old_center)
             self.hitbox.center = self.rect.center
         
-    def update(self, delta_time):
-        self.time_accumulator += delta_time
+    def update(self):
+        if self.paused:  # Don't update animation if paused
+            return
+        self.time_accumulator += self.game.delta_time
         if self.time_accumulator >= self.update_frequency:
             self.time_accumulator -= self.update_frequency
             self.current_frame = (self.current_frame + 1) % len(self.frames)
             self.image = self.frames[self.current_frame][0]
+            
+    def pause(self):
+        self.paused = True
+
+    def resume(self):
+        self.paused = False

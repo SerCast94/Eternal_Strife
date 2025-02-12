@@ -3,12 +3,13 @@ import pygame
 from abc import ABC, abstractmethod
 
 class BaseEnemy(AnimatedSprite):
-    def __init__(self, settings, position, animation_manager, enemy_data):
-        super().__init__(animation_manager, enemy_data['idle_animation'], position, enemy_data['size'], settings)
+    def __init__(self, settings, position, animation_manager, enemy_data, game):
+        super().__init__(animation_manager, enemy_data['idle_animation'], position, enemy_data['size'], settings,game)
         self.settings = settings
         self.speed = enemy_data['speed']
         self.health = enemy_data['health']
         self.damage = enemy_data['damage']
+        self.game = game
         self.scale_sprite(enemy_data['scale'])
         self.detection_radius = enemy_data['detection_radius']
         self.collision_radius = max(enemy_data['size'][0], enemy_data['size'][1]) * 0.4
@@ -44,13 +45,15 @@ class BaseEnemy(AnimatedSprite):
             )
 
     @abstractmethod
-    def update_behavior(self, delta_time, tilemap, player_pos):
+    def update_behavior(self, tilemap, player_pos):
         """Comportamiento específico de cada tipo de enemigo"""
         pass
 
-    def update(self, delta_time, tilemap, player_pos):
-        super().update(delta_time)
-        self.update_behavior(delta_time, tilemap, player_pos)
+    def update(self, tilemap, player_pos):
+        if self.game.paused:
+            return
+        super().update()  # Llama al update de AnimatedSprite
+        self.update_behavior(tilemap, player_pos)
 
     def take_damage(self, amount):
         self.health -= amount
