@@ -10,7 +10,7 @@ class LevelUpScreen:
         self.player = player
         self.settings = settings
         self.popup_width = 600
-        self.popup_height = 300
+        self.popup_height = 400
         self.popup_surface = pygame.Surface((self.popup_width, self.popup_height))
         self.popup_rect = self.popup_surface.get_rect(center=(screen.get_width()//2, screen.get_height()//2))
         
@@ -34,9 +34,9 @@ class LevelUpScreen:
             })
         
         self.options = [
-            {"text": "Subir vida máxima (+20)", "effect": self.increase_max_health},
-            {"text": "Subir cadencia de disparo (+10%)", "effect": self.increase_fire_rate},
-            {"text": "Subir daño (+15%)", "effect": self.increase_damage},
+            {"text": "Vida maxima (+20)", "effect": self.increase_max_health},
+            {"text": "Cadencia de disparo (+10%)", "effect": self.increase_fire_rate},
+            {"text": "Damage (+15%)", "effect": self.increase_damage},
             {"text": "Recuperar vida (20%)", "effect": self.heal}
         ]
         
@@ -76,26 +76,24 @@ class LevelUpScreen:
         stats_text = [
             f"Nivel actual: {self.player.level}",
             f"Vida: {self.player.health:.0f}/{self.player.max_health}",
-            f"Daño: {self.player.attacks[0].damage:.1f}",
+            f"Damage: {self.player.attacks[0].damage:.1f}",
             f"Cadencia: {1000/self.player.attacks[0].cooldown:.2f}/s"
         ]
         
         y = 60
         for text in stats_text:
             surface = self.small_font.render(text, True, (255, 255, 255))
-            self.popup_surface.blit(surface, (50, y))
-            y += 20
+            self.popup_surface.blit(surface, (74, y))
+            y += 30
 
     def handle_event(self, event):
-        """Maneja los eventos de la pantalla de level up"""
         if event.type == pygame.MOUSEBUTTONDOWN:
             mouse_pos = pygame.mouse.get_pos()
-            # Adjust mouse position relative to popup
             relative_pos = (mouse_pos[0] - self.popup_rect.x, 
-                          mouse_pos[1] - self.popup_rect.y)
+                        mouse_pos[1] - self.popup_rect.y)
             button_x = (self.popup_width - self.button_width) // 2
             for i, option in enumerate(self.options):
-                button_rect = pygame.Rect(button_x, 150 + i * 40, self.button_width, 30)
+                button_rect = pygame.Rect(button_x, 180 + i * 50, self.button_width, 35)  # Match the new positions
                 if button_rect.collidepoint(relative_pos):
                     option["effect"]()
                     self.done = True
@@ -190,12 +188,13 @@ class LevelUpScreen:
         # Dibujar opciones
         button_x = (self.popup_width - self.button_width) // 2
         for i, option in enumerate(self.options):
-            button_rect = pygame.Rect(button_x, 150 + i * 40, self.button_width, 30)
+            button_rect = pygame.Rect(button_x, 180 + i * 50, self.button_width, 35)  # Changed Y position and spacing
             pygame.draw.rect(self.popup_surface, (50, 50, 50), button_rect)
             pygame.draw.rect(self.popup_surface, (255, 255, 255), button_rect, 1)
             text = self.small_font.render(option["text"], True, (255, 255, 255))
             self.popup_surface.blit(text, (button_rect.centerx - text.get_width()//2, 
                                         button_rect.centery - text.get_height()//2))
+
 
         # Dibujar popup en la pantalla
         self.screen.blit(self.popup_surface, self.popup_rect)

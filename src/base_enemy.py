@@ -20,12 +20,12 @@ class BaseEnemy(AnimatedSprite):
         self._last_collision_check = 0
         self._collision_cache = {}
         
-        def check_collision_with_enemy(self, other_enemy):
-            # Usar distancia al cuadrado para evitar sqrt
-            dx = self.rect.centerx - other_enemy.rect.centerx
-            dy = self.rect.centery - other_enemy.rect.centery
-            dist_squared = dx * dx + dy * dy
-            return dist_squared < (self.collision_radius * 2) ** 2
+    def check_collision_with_enemy(self, other_enemy):
+        # Usar distancia al cuadrado para evitar sqrt
+        dx = self.rect.centerx - other_enemy.rect.centerx
+        dy = self.rect.centery - other_enemy.rect.centery
+        dist_squared = dx * dx + dy * dy
+        return dist_squared < (self.collision_radius * 2) ** 2
 
     def resolve_collision(self, other_enemy):
         """Resuelve la colisión entre dos enemigos empujándolos en direcciones opuestas"""
