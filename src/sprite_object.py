@@ -1,9 +1,10 @@
 import pygame
 
 class SpriteObject(pygame.sprite.Sprite):
-    def __init__(self, image, position, size, settings, scale=1.0):
+    def __init__(self, image, position, size, settings,game, scale=1.0):
         super().__init__()
         self.settings = settings
+        self.game = game
         self.image = image
         self.image = pygame.transform.scale(self.image, (int(size[0] * scale), int(size[1] * scale)))
         self.rect = self.image.get_rect(center=position)

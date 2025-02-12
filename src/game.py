@@ -7,6 +7,7 @@ from game_state import GameState
 from settings import Settings
 from player import Player
 from profiler import Profiler
+from level_up_screen import LevelUpScreen
 from tilemap import TileMap
 from enemy_manager import EnemyManager
 from ui_manager import UIManager
@@ -21,6 +22,14 @@ class Game:
         self.clock = pygame.time.Clock()
         self.debug_mode = debug_mode
         self.profiler = Profiler() if debug_mode else None
+        self.paused = False
+        self.game_time = 0
+        self.game_timer = pygame.USEREVENT + 1
+        pygame.time.set_timer(self.game_timer, 1000 // self.settings.FPS)
+        self.last_tick = pygame.time.get_ticks()
+        self.delta_time = 0
+        
+
         
         self.debug_info = {
             "fps": 0,
@@ -54,11 +63,11 @@ class Game:
 
         # Inicializar componentes del juego
         self.log("Inicializando GameState...")
-        self.game_state = GameState()
+        self.game_state = GameState(self)
         self.log("GameState inicializado")
 
         self.log("Inicializando AnimationManager...")
-        self.animation_manager = AnimationManager(self.settings)
+        self.animation_manager = AnimationManager(self.settings, self)
         self.log("AnimationManager inicializado")
 
         self.log("Inicializando TileMap...")
@@ -67,11 +76,11 @@ class Game:
         self.log("TileMap inicializado")
 
         self.log("Inicializando EnemyManager...")
-        self.enemy_manager = EnemyManager(self.settings, None, self.animation_manager, self.tilemap)
+        self.enemy_manager = EnemyManager(self.settings, None, self.animation_manager, self.tilemap,self)
         self.log("EnemyManager inicializado")
 
         self.log("Inicializando Player...")
-        self.player = Player(self.settings, self.animation_manager, self.enemy_manager)
+        self.player = Player(self.settings, self.animation_manager, self.enemy_manager, self)
         self.enemy_manager.player = self.player  # Asignar el jugador al EnemyManager
         self.log("Player inicializado")
 
@@ -81,8 +90,6 @@ class Game:
 
         self.log("Juego inicializado correctamente")
 
-        # Crear un evento para sincronización
-        self.update_event = threading.Event()
 
 
 
@@ -126,12 +133,86 @@ class Game:
                         self.player.is_invincible = self.debug_info["god_mode"]
                     if event.key == pygame.K_F3 and self.debug_mode:
                         self.enemy_manager.multiplicadorRatioSpawn += 3
+                    if event.key == pygame.K_l and self.debug_mode:
+                        self.player.level += 1
+                        self.mostarVentanaLevelup()
                 self.player.handle_input(event)
             return True
         except Exception as e:
             print(f"Error manejando eventos: {e}")
             return False
+        
+    def run(self):
+        try:
+            while not self.game_state.is_game_over:
+                # Process all events first
+                if not self.handle_events():
+                    return
+                    
+                # Only update and draw if game timer event occurred and not paused
+                current_time = pygame.time.get_ticks()
+                self.delta_time = (current_time - self.last_tick) / 1000.0
+                self.last_tick = current_time
+                
+                if not self.paused:
+                    self.update()
+                
+                self.draw()
+                self.clock.tick(self.settings.FPS)
+                
+                if self.game_state.is_game_over:
+                    game_over_screen = GameOverScreen(self.screen, self.game_state, self.player.score)
+                    game_over_screen.run()
+                        
+        except Exception as e:
+            self.log(f"Error en el bucle principal: {e}")
+                    
+        except Exception as e:
+            self.log(f"Error en el bucle principal: {e}")
 
+    def update(self):
+        try:
+            if self.paused:
+                return
+                
+            frame_start = pygame.time.get_ticks()
+
+            # Update animations only if not paused
+            if self.debug_mode:
+                self.profiler.start("update_animation_manager")
+            self.animation_manager.update()
+            if self.debug_mode:
+                self.profiler.stop()
+
+            # Update player only if not paused
+            if not self.paused:
+                self.updatePlayer()
+                self.game_time += self.delta_time
+            
+            # Update enemies only if not paused
+            if self.debug_mode:
+                self.profiler.start("enemy_management")
+            enemy_calc_start = pygame.time.get_ticks()
+            self.enemy_manager.update(self.tilemap)
+            self.debug_info["enemy_calc_time"] = pygame.time.get_ticks() - enemy_calc_start
+            if self.debug_mode:
+                self.profiler.stop()
+
+            # Update camera only if not paused
+            if not self.paused:
+                self.tilemap.update_camera(self.player.rect.centerx, self.player.rect.centery)
+
+                # Check game over
+                if self.player.health <= 0 and not self.debug_info["god_mode"]:
+                    self.game_state.is_game_over = True
+
+                # Update debug info
+                self.debug_info["frame_time"] = pygame.time.get_ticks() - frame_start
+                self.debug_info["fps"] = self.clock.get_fps()
+                self.debug_info["enemy_count"] = len(self.enemy_manager.enemies)
+
+        except Exception as e:
+            self.log(f"Error actualizando el juego: {e}")
     def restart_game(self):
         try:
             print("Reiniciando componentes del juego...")
@@ -158,70 +239,7 @@ class Game:
         except Exception as e:
             self.log(f"Error reiniciando el juego: {e}")
 
-    def update(self, delta_time):
-        try:
-            frame_start = pygame.time.get_ticks()
-            if self.debug_mode:
-                self.profiler.start("update_animation_manager")
-            self.animation_manager.update(delta_time)  # Actualizar animaciones globalmente
-            if self.debug_mode:
-                self.profiler.stop()
-                
-            
-            if self.debug_mode:
-                self.profiler.start("update_player")
-            self.game_state.update(delta_time)  # Actualizar el tiempo de juego
-            self.player.update(delta_time, self.tilemap)
-            if self.debug_mode:
-                self.profiler.stop()
-                
-            if self.debug_mode:
-                self.profiler.start("enemy_management")
-                # Medir tiempo de actualización del grid espacial
-                spatial_grid_start = pygame.time.get_ticks()
-                self.enemy_manager._update_spatial_grid()
-                self.debug_info["spatial_grid_time"] = pygame.time.get_ticks() - spatial_grid_start
-
-                # Medir tiempo de pathfinding/movimiento
-                pathfinding_start = pygame.time.get_ticks()
-                self.enemy_manager.update(delta_time, self.tilemap)
-                self.debug_info["pathfinding_time"] = pygame.time.get_ticks() - pathfinding_start
-                
-                # Actualizar conteo de enemigos
-                self.debug_info["enemy_count"] = len(self.enemy_manager.enemies)
-
-            if self.debug_mode:
-                self.profiler.stop()
-            
-        
-            if self.debug_mode:
-                self.profiler.start("update_enemy_manager")
-            self.enemy_manager.update(delta_time, self.tilemap)
-            if self.debug_mode:
-                self.profiler.stop()
-
-            if self.debug_mode:
-                self.profiler.start("update_tilemap")
-            self.tilemap.update_camera(self.player.rect.centerx, self.player.rect.centery)
-            if self.debug_mode:
-                self.profiler.stop()
-                
-            if self.debug_mode:
-                self.profiler.start("update_enemy_manager")
-            enemy_calc_start = pygame.time.get_ticks()
-            self.enemy_manager.update(delta_time, self.tilemap)
-            self.debug_info["enemy_calc_time"] = pygame.time.get_ticks() - enemy_calc_start
-            if self.debug_mode:
-                self.profiler.stop()
-            
-            # Verificar si la vida del jugador llega a 0
-            if self.player.health <= 0 and self.debug_info["god_mode"] == False:
-                self.game_state.is_game_over = True
-                
-            self.debug_info["frame_time"] = pygame.time.get_ticks() - frame_start
-            self.debug_info["fps"] = self.clock.get_fps()
-        except Exception as e:
-            self.log(f"Error actualizando el juego: {e}")
+    
             
     def draw_debug_info(self):
         if not self.debug_mode:
@@ -233,11 +251,17 @@ class Game:
             f"Enemy Count: {self.debug_info['enemy_count']}",
             f"Spatial Grid Time: {self.debug_info['spatial_grid_time']:.2f}ms",
             f"Pathfinding Time: {self.debug_info['pathfinding_time']:.2f}ms",
+            f"Current level {self.player.level}",
+            f"Exp to next level {self.player.exp_to_next_level}",
+            f"Exp increase rate {self.player.exp_increase_rate}",
+            f"Game time {self.game_time:.2f}",
+            f"Delta time {self.delta_time:.2f}",
             "",
             "Controles de Debug:",
             "F1: Mostrar graficos de rendimiento",
             "F2: Exportar datos de rendimiento",
-            "F3: Aumentar dificultad", 
+            "F3: Aumentar dificultad",
+            "L: Mostar ventana de level up",
             "H: Activar god mode ({})".format("ON" if self.debug_info["god_mode"] else "OFF"),
             "R: Reiniciar juego"
             ]
@@ -301,19 +325,65 @@ class Game:
                 self.profiler.stop()
         except Exception as e:
             self.log(f"Error dibujando el juego: {e}")
-
-    def run(self):
+            
+    def updatePlayer(self):
+        # Update player and check for level up
+            result = self.player.update(self.tilemap)
+            if result:
+                self.mostarVentanaLevelup()
+    
+    def mostarVentanaLevelup(self):
         try:
-            while not self.game_state.is_game_over:
-                delta_time = self.clock.tick(self.settings.FPS) / 1000.0
-                if not self.handle_events():
-                    break
-                self.update(delta_time)
-                self.draw()
+            # Hacer una copia del estado actual de la pantalla
+            current_surface = self.screen.copy()
+            
+            # Pausar el juego y detener el timer
+            self.paused = True
+            pygame.time.set_timer(self.game_timer, 0)
+            self.animation_manager.pause()
+            
+            # Detener completamente al jugador
+            saved_velocity = self.player.velocity.copy()
+            self.player.velocity.x = 0
+            self.player.velocity.y = 0
+            
+            # Crear la ventana de level up
+            level_up_screen = LevelUpScreen(self.screen, self.player, self.settings, self)
+            
+            while not level_up_screen.done:
+                for event in pygame.event.get():
+                    if event.type == pygame.QUIT:
+                        pygame.quit()
+                        sys.exit()
+                    level_up_screen.handle_event(event)
                 
-            # Mostrar pantalla de Game Over si el juego ha terminado
-            if self.game_state.is_game_over:
-                game_over_screen = GameOverScreen(self.screen, self.game_state, self.player.score)
-                game_over_screen.run()
+                # Restaurar el estado guardado de la pantalla
+                self.screen.blit(current_surface, (0, 0))
+                
+                # Crear y aplicar overlay semitransparente
+                dim_surface = pygame.Surface(self.screen.get_size()).convert_alpha()
+                dim_surface.fill((0, 0, 0, 128))
+                self.screen.blit(dim_surface, (0, 0))
+                
+                # Dibujar la ventana de level up
+                level_up_screen.draw()
+                pygame.display.flip()
+                
+                self.clock.tick(self.settings.FPS)
+            
+            # Restaurar el estado del juego
+            self.paused = False
+            pygame.time.set_timer(self.game_timer, 1000 // self.settings.FPS)
+            self.last_tick = pygame.time.get_ticks()  # Resetear el último tick
+            self.animation_manager.resume()
+            
+            # Restaurar velocidad del jugador
+            keys = pygame.key.get_pressed()
+            if not keys[pygame.K_w] and not keys[pygame.K_s]:
+                self.player.velocity.y = saved_velocity.y
+            if not keys[pygame.K_a] and not keys[pygame.K_d]:
+                self.player.velocity.x = saved_velocity.x
+                
         except Exception as e:
-            self.log(f"Error en el bucle principal: {e}")
+            print(f"Error en ventana de level up: {e}")
+        

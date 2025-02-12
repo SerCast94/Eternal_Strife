@@ -4,16 +4,20 @@ from attacks import FireballAttack
 from item import Gem, Tuna
 
 class Player(AnimatedSprite):
-    def __init__(self, settings, animation_manager, enemy_manager):
+    def __init__(self, settings, animation_manager, enemy_manager, game):
         initial_pos = (settings.map_width * settings.tile_size // 2, 
                       settings.map_height * settings.tile_size // 2)
-        super().__init__(animation_manager, 'player_idle', initial_pos, settings.player_size, settings)
+        super().__init__(animation_manager, 'player_idle', initial_pos, settings.player_size, settings,game)
         self.settings = settings
+        self.game = game
         self.velocity = pygame.Vector2()
         self.health = settings.player_health
         self.max_health = settings.player_health
         self.score = 0
         self.is_player = True  # Atributo para identificar al jugador
+        self.level = 1
+        self.exp_to_next_level = 5
+        self.exp_increase_rate = 1.5 
         
         # Movement state
         self.moving = False
@@ -32,7 +36,7 @@ class Player(AnimatedSprite):
 
         # Inventario de ataques
         self.attacks = []
-        self.add_attack(FireballAttack(settings, self, enemy_manager))
+        self.add_attack(FireballAttack(settings, self, enemy_manager,self.game))
 
         # Referencia al EnemyManager
         self.enemy_manager = enemy_manager
@@ -41,7 +45,7 @@ class Player(AnimatedSprite):
         self.attacks.append(attack)
         
     def handle_input(self, event):
-        if event.type == pygame.KEYDOWN:
+        if event.type == pygame.KEYDOWN: 
             if event.key == pygame.K_w:
                 self.velocity.y = -1
                 self.change_animation(self.animations["walk_up"])
@@ -63,16 +67,18 @@ class Player(AnimatedSprite):
             if self.velocity.length() == 0:
                 self.change_animation(self.animations["idle"])
                 
-    def update(self, delta_time, tilemap):
-        super().update(delta_time)
+    def update(self, tilemap):
+        if self.game.paused:
+            return False
         
+        super().update()
         # Update movement
         if self.velocity.length() > 0:
             self.velocity = self.velocity.normalize()
             
         # Calculate new position    
-        new_x = self.rect.x + self.velocity.x * self.settings.player_speed * delta_time
-        new_y = self.rect.y + self.velocity.y * self.settings.player_speed * delta_time
+        new_x = self.rect.x + self.velocity.x * self.settings.player_speed * self.game.delta_time
+        new_y = self.rect.y + self.velocity.y * self.settings.player_speed * self.game.delta_time
         
         # Store old position
         old_position = self.rect.topleft
@@ -93,22 +99,27 @@ class Player(AnimatedSprite):
 
         # Actualizar ataques
         for attack in self.attacks:
-            attack.update(delta_time)
+            attack.update()
             attack.attack()  # Lanzar ataque automáticamente después del cooldown
 
         # Recoger ítems
-        self.collect_items(self.enemy_manager.items)
+        return self.collect_items(self.enemy_manager.items)
 
     def draw(self, screen, camera_x, camera_y):
         super().draw(screen, camera_x, camera_y)
         for attack in self.attacks:
             attack.draw(screen, camera_x, camera_y)
-
+            
     def collect_items(self, items):
+        level_up = False
         for item in items[:]:
             if self.hitbox.colliderect(item.rect):
                 if isinstance(item, Gem):
                     self.score += 1
+                    # Verificar si subimos de nivel
+                    if self.score >= self.exp_to_next_level:
+                        level_up = True
                 elif isinstance(item, Tuna):
                     self.health = min(self.max_health, self.health + self.max_health * 0.2)
                 items.remove(item)
+        return level_up
