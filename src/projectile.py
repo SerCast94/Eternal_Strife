@@ -20,10 +20,19 @@ class Projectile(SpriteObject):
         self.puntoDeIOrigen = position
 
     def calculate_velocity(self, speed):
-        direction = self.target_position - pygame.Vector2(self.rect.center)
-        if direction.length() > 0:
+        # Obtener el vector dirección desde la posición inicial hasta el objetivo
+        direction = pygame.Vector2(
+            self.target_position.x - self.rect.centerx,
+            self.target_position.y - self.rect.centery
+        )
+        
+        # Normalizar el vector solo si tiene longitud
+        if direction.length_squared() > 0:  # Usar length_squared es más eficiente que length()
             direction = direction.normalize()
-        return direction * speed
+            return direction * speed
+        else:
+            # En caso de que el objetivo esté en la misma posición, disparar hacia la derecha
+            return pygame.Vector2(1, 0) * speed
 
     def update(self, player, enemy_manager):
         self.rect.center += self.velocity * self.game.delta_time
@@ -46,7 +55,7 @@ class Projectile(SpriteObject):
         dy = self.rect.centery - self.puntoDeIOrigen[1]
         distance = (dx * dx + dy * dy) ** 0.5
         
-        if distance > 200:
+        if distance > 1000:
             return True  # Projectile should be destroyed
 
         # Actualizar animación

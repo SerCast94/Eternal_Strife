@@ -83,6 +83,7 @@ class RangedEnemy(BaseEnemy):
             'health': 100,
             'damage': 10,
             'scale': 1.0,
+            'projectile_speed': 150,
             'detection_radius': 300,  # Radio de detección para disparar
             'escape_radius': 80,     # Radio de escape para huir
             'attack_cooldown': 2.0
@@ -166,10 +167,20 @@ class RangedEnemy(BaseEnemy):
                 break
 
     def attack(self, player_pos):
-        # Crear un proyectil dirigido al jugador
-        direction = pygame.Vector2(player_pos) - pygame.Vector2(self.rect.center)
-        if direction.length() > 0:
-            direction = direction.normalize()
-        projectile = Projectile(self.settings, self.animation_manager, self.rect.center, player_pos, self.enemy_data['damage'], 50, 'player', 'enemy_projectile_idle',self.game)
-        self.projectiles.append(projectile)  # Agregar el proyectil a la lista de proyectiles
+        # Asegurarse de que player_pos sea un Vector2
+        target_pos = pygame.Vector2(player_pos)
+        start_pos = pygame.Vector2(self.rect.center)
+        
+        projectile = Projectile(
+            self.settings,
+            self.animation_manager,
+            start_pos,
+            target_pos,
+            self.enemy_data['damage'],
+            self.enemy_data["projectile_speed"],
+            'player',
+            'enemy_projectile_idle',
+            self.game
+        )
+        self.projectiles.append(projectile)
         self.enemy_manager.add_projectile(projectile)

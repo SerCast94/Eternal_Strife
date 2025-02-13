@@ -12,10 +12,18 @@ class EnemyProjectile(SpriteObject):
         self.damage = damage
 
     def calculate_velocity(self, speed):
-        direction = self.target_position - pygame.Vector2(self.rect.center)
+        # Convertir las posiciones a vectores si no lo están ya
+        start_pos = pygame.Vector2(self.rect.center)
+        target_pos = pygame.Vector2(self.target_position)
+        
+        # Calcular el vector dirección
+        direction = target_pos - start_pos
+        
+        # Normalizar solo si la dirección no es cero
         if direction.length() > 0:
             direction = direction.normalize()
-        return direction * speed
+            return direction * speed
+        return pygame.Vector2(0, 0)
 
     def update(self, player):
         self.rect.center += self.velocity * self.game.delta_time

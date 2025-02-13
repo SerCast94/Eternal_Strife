@@ -52,7 +52,20 @@ class FireballAttack(BaseAttack):
     def perform_attack(self):
         closest_enemy = self.find_closest_enemy()
         if closest_enemy:
-            projectile = Projectile(self.settings, self.owner.animation_manager, self.owner.rect.center, closest_enemy.rect.center, 20, 300, 'enemy', 'fireball_idle',self.game)
+            start_pos = pygame.Vector2(self.owner.rect.center)
+            target_pos = pygame.Vector2(closest_enemy.rect.center)
+            
+            projectile = Projectile(
+                self.settings,
+                self.owner.animation_manager,
+                start_pos,
+                target_pos,
+                self.damage,
+                300,
+                'enemy',
+                'fireball_idle',
+                self.game
+            )
             self.projectiles.append(projectile)
 
     def find_closest_enemy(self):

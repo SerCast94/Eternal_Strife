@@ -386,4 +386,6 @@ class Game:
                 
         except Exception as e:
             print(f"Error en ventana de level up: {e}")
+            
+    
         

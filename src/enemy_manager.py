@@ -95,8 +95,7 @@ class EnemyManager:
     def update(self, tilemap):
         if self.game.paused:
             return
-
-        print("Enemigo actualizado")
+        
         # Actualizar temporizadores y tasa de spawn
         self.time_elapsed += self.game.delta_time
         self.spawn_timer += self.game.delta_time
@@ -146,7 +145,7 @@ class EnemyManager:
 
     def drop_item(self, position):
         """Genera un ítem aleatorio en la posición dada"""
-        if random.random() < 0.70:
+        if random.random() < 0.99:
             item = Gem(self.settings, self.animation_manager, position,self.game)
         else:
             item = Tuna(self.settings, self.animation_manager, position,self.game)

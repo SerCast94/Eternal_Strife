@@ -14,6 +14,7 @@ class Player(AnimatedSprite):
         self.health = settings.player_health
         self.max_health = settings.player_health
         self.score = 0
+        self.scoreToLevelUp = 0
         self.is_player = True  # Atributo para identificar al jugador
         self.level = 1
         self.exp_to_next_level = 5
@@ -110,16 +111,27 @@ class Player(AnimatedSprite):
         for attack in self.attacks:
             attack.draw(screen, camera_x, camera_y)
             
+    def level_up(self):
+        self.level += 1
+        self.exp_to_next_level = int(self.exp_to_next_level * self.exp_increase_rate)
+        self.scoreToLevelUp = 0
+        return True
+            
     def collect_items(self, items):
         level_up = False
         for item in items[:]:
             if self.hitbox.colliderect(item.rect):
                 if isinstance(item, Gem):
+                    self.scoreToLevelUp += 1
                     self.score += 1
                     # Verificar si subimos de nivel
-                    if self.score >= self.exp_to_next_level:
-                        level_up = True
+                    if self.scoreToLevelUp >= self.exp_to_next_level:
+                        level_up = self.level_up()
                 elif isinstance(item, Tuna):
                     self.health = min(self.max_health, self.health + self.max_health * 0.2)
                 items.remove(item)
         return level_up
+    
+
+
+        
