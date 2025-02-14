@@ -161,7 +161,7 @@ class Game:
                 self.clock.tick(self.settings.FPS)
                 
                 if self.game_state.is_game_over:
-                    game_over_screen = GameOverScreen(self.screen, self.game_state, self.player.score)
+                    game_over_screen = GameOverScreen(self.screen, self.game_state, self.player.score,self.player.level,self)
                     game_over_screen.run()
                         
         except Exception as e:
@@ -213,6 +213,7 @@ class Game:
 
         except Exception as e:
             self.log(f"Error actualizando el juego: {e}")
+
     def restart_game(self):
         try:
             print("Reiniciando componentes del juego...")

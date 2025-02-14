@@ -32,12 +32,12 @@ def read_scores_xml(file_path):
         name = score_element.find("name").text
         time = score_element.find("time").text
         score_value = int(score_element.find("score_value").text)
-        enemies_defeated = int(score_element.find("enemies_defeated").text)
+        level = int(score_element.find("level").text)
         scores.append({
             "name": name,
             "time": time,
             "score_value": score_value,
-            "enemies_defeated": enemies_defeated
+            "level": level
         })
 
     # Sort scores by score_value in descending order
@@ -106,8 +106,8 @@ def show_high_scores(screen):
 
         # Draw the table headers
         font = pygame.font.Font("assets/fonts/EldringBold.ttf", 25)
-        headers = ["Nombre", "Tiempo", "Puntos", "Bajas"]
-        header_x_positions = [170, 320, 470, 620]
+        headers = ["Nombre", "Tiempo", "Puntos", "Nivel"]
+        header_x_positions = [130, 300, 470, 640]
         for i, header in enumerate(headers):
             header_surface = font.render(header, True, WHITE)
             header_rect = header_surface.get_rect(center=(header_x_positions[i], 120))
@@ -119,7 +119,7 @@ def show_high_scores(screen):
         # Draw the scores in table format
         y_offset = 175
         for score in sorted_scores:
-            score_values = [score['name'], score['time'], str(score['score_value']), str(score['enemies_defeated'])]
+            score_values = [score['name'], score['time'], str(score['score_value']), str(score['level'])]
             for i, value in enumerate(score_values):
                 text_surface = font.render(value, True, WHITE)
                 text_rect = text_surface.get_rect(center=(header_x_positions[i], y_offset))

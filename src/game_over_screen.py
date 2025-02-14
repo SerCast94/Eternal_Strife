@@ -1,5 +1,3 @@
-# src/game_over_screen.py
-
 import pygame
 import sys
 import xml.etree.ElementTree as ET
@@ -7,10 +5,12 @@ import random
 
 
 class GameOverScreen:
-    def __init__(self, screen, game_state, score):
+    def __init__(self, screen, game_state, score, level,game):
         self.screen = screen
+        self.game = game
         self.game_state = game_state
         self.score = score
+        self.level = level  # Añadir nivel del personaje
         self.font = pygame.font.Font("assets/fonts/EldringBold.ttf", 40)
         self.input_box = pygame.Rect(200, 300, 400, 50)
         self.color_inactive = pygame.Color('lightskyblue3')
@@ -107,12 +107,12 @@ class GameOverScreen:
 
         new_score = ET.Element("score")
         ET.SubElement(new_score, "name").text = name
-        minutes = int(self.game_state.game_time // 60)
-        seconds = int(self.game_state.game_time % 60)
+        minutes = int(self.game.game_time // 60)
+        seconds = int(self.game.game_time % 60)
         formatted_time = f"{minutes:02}:{seconds:02}"
         ET.SubElement(new_score, "time").text = formatted_time
         ET.SubElement(new_score, "score_value").text = str(self.score)
-        ET.SubElement(new_score, "enemies_defeated").text = str(self.score)  # Asumiendo que el score es igual a enemigos derrotados
+        ET.SubElement(new_score, "level").text = str(self.level)  # Añadir nivel del personaje
 
         root.append(new_score)
         tree.write('assets/score.xml')

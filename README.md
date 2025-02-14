@@ -9,7 +9,7 @@
 -   **Menú Principal**: Menú con botones y fondo animado, que incluye la capacidad de controlar la velocidad del planeta.
 -   **Generación de Mapas**: Implementación de un sistema de **tiles** para generar el entorno del juego, optimizando la creación de niveles.
 -   **Lógica de Juego**:
-    -   Movimiento del jugador y sistema básico de colisiones.
+    -   **Movimiento del jugador** y sistema básico de colisiones.
     -   **Puntuación**: Sistema de puntuaciones con opción de volver al menú principal.
     -   **Pantalla de Carga**: Con estrellas para mejorar la experiencia visual al iniciar el juego.
     -   **Dificultad Dinámica**: Los enemigos aumentan en cantidad y/o velocidad conforme avanza el tiempo.

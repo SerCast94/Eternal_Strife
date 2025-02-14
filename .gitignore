@@ -25,3 +25,6 @@ Thumbs.db
 *.~*
 *.old
 *.log
+
+#scores
+scores.xml
