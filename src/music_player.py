@@ -239,3 +239,7 @@ class MusicPlayer:
     def unpause(self):
         """Reanuda la reproducción"""
         pygame.mixer.music.unpause()
+    
+    def get_volume(self):
+        """Obtiene el volumen actual (0.0 a 1.0)"""
+        return pygame.mixer.music.get_volume()

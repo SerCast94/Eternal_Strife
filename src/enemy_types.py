@@ -182,5 +182,6 @@ class RangedEnemy(BaseEnemy):
             'enemy_projectile_idle',
             self.game
         )
+        
         self.projectiles.append(projectile)
         self.enemy_manager.add_projectile(projectile)

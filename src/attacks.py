@@ -64,7 +64,7 @@ class FireballAttack(BaseAttack):
                 self.damage,
                 300,
                 'enemy',
-                'fireball_idle',
+                'fireball_idle',  # Use specific animation for projectile
                 self.game
             )
             self.projectiles.append(projectile)
