@@ -3,7 +3,7 @@ from base_enemy import BaseEnemy
 from projectile import Projectile
 
 class SlimeEnemy(BaseEnemy):
-    def __init__(self, settings, position, animation_manager, enemy_manager):
+    def __init__(self, settings, position, animation_manager, enemy_manager,game):
         enemy_data = {
             'idle_animation': 'slime_idle',
             'size': (32, 32),
@@ -13,10 +13,10 @@ class SlimeEnemy(BaseEnemy):
             'scale': 1.0,
             'detection_radius': 100
         }
-        super().__init__(settings, position, animation_manager, enemy_data)
+        super().__init__(settings, position, animation_manager, enemy_data,game)
         self.enemy_manager = enemy_manager
 
-    def update_behavior(self, delta_time, tilemap, player_pos):
+    def update_behavior(self, tilemap, player_pos):
         # Comportamiento básico del slime: perseguir al jugador y evitar obstáculos
         to_player = pygame.Vector2(player_pos) - pygame.Vector2(self.rect.center)
         if to_player.length() > 0:
@@ -34,15 +34,13 @@ class SlimeEnemy(BaseEnemy):
         old_position = self.rect.topleft
         
         # Intentar mover
-        new_x = self.rect.x + steering.x * self.speed * delta_time
-        new_y = self.rect.y + steering.y * self.speed * delta_time
+        new_x = self.rect.x + steering.x * self.speed * self.game.delta_time
+        new_y = self.rect.y + steering.y * self.speed * self.game.delta_time
         self.move(new_x, new_y)
         
         # Verificar colisiones y límites
         if tilemap.check_collision(self.hitbox):
             self.move(old_position[0], old_position[1])
-            # Intentar moverse en una dirección diferente si hay colisión
-            self._resolve_stuck(tilemap)
 
     def _detect_obstacles(self, tilemap):
         directions = [
@@ -77,7 +75,7 @@ class SlimeEnemy(BaseEnemy):
                 break
 
 class RangedEnemy(BaseEnemy):
-    def __init__(self, settings, position, animation_manager, enemy_manager):
+    def __init__(self, settings, position, animation_manager, enemy_manager,game):
         enemy_data = {
             'idle_animation': 'ranged_idle',
             'size': (32, 32),
@@ -85,16 +83,17 @@ class RangedEnemy(BaseEnemy):
             'health': 100,
             'damage': 10,
             'scale': 1.0,
+            'projectile_speed': 150,
             'detection_radius': 300,  # Radio de detección para disparar
             'escape_radius': 80,     # Radio de escape para huir
             'attack_cooldown': 2.0
         }
-        super().__init__(settings, position, animation_manager, enemy_data)
+        super().__init__(settings, position, animation_manager, enemy_data,game)
         self.enemy_manager = enemy_manager
         self.attack_timer = 0
         self.projectiles = []  # Inicializar el atributo projectiles
 
-    def update_behavior(self, delta_time, tilemap, player_pos):
+    def update_behavior(self, tilemap, player_pos):
         # Comportamiento básico del enemigo a distancia: mantener distancia y atacar al jugador
         to_player = pygame.Vector2(player_pos) - pygame.Vector2(self.rect.center)
         distance_to_player = to_player.length()
@@ -119,8 +118,8 @@ class RangedEnemy(BaseEnemy):
         old_position = self.rect.topleft
         
         # Intentar mover
-        new_x = self.rect.x + steering.x * self.speed * delta_time
-        new_y = self.rect.y + steering.y * self.speed * delta_time
+        new_x = self.rect.x + steering.x * self.speed * self.game.delta_time
+        new_y = self.rect.y + steering.y * self.speed * self.game.delta_time
         self.move(new_x, new_y)
         
         # Verificar colisiones y límites
@@ -130,7 +129,7 @@ class RangedEnemy(BaseEnemy):
             self._resolve_stuck(tilemap)
 
         # Atacar al jugador si está en rango de detección
-        self.attack_timer -= delta_time
+        self.attack_timer -= self.game.delta_time
         if self.attack_timer <= 0 and distance_to_player < self.enemy_data['detection_radius']:
             self.attack(player_pos)
             self.attack_timer = self.enemy_data['attack_cooldown']
@@ -168,10 +167,20 @@ class RangedEnemy(BaseEnemy):
                 break
 
     def attack(self, player_pos):
-        # Crear un proyectil dirigido al jugador
-        direction = pygame.Vector2(player_pos) - pygame.Vector2(self.rect.center)
-        if direction.length() > 0:
-            direction = direction.normalize()
-        projectile = Projectile(self.settings, self.animation_manager, self.rect.center, player_pos, self.enemy_data['damage'], 200, 'player', 'enemy_projectile_idle')
-        self.projectiles.append(projectile)  # Agregar el proyectil a la lista de proyectiles
+        # Asegurarse de que player_pos sea un Vector2
+        target_pos = pygame.Vector2(player_pos)
+        start_pos = pygame.Vector2(self.rect.center)
+        
+        projectile = Projectile(
+            self.settings,
+            self.animation_manager,
+            start_pos,
+            target_pos,
+            self.enemy_data['damage'],
+            self.enemy_data["projectile_speed"],
+            'player',
+            'enemy_projectile_idle',
+            self.game
+        )
+        self.projectiles.append(projectile)
         self.enemy_manager.add_projectile(projectile)

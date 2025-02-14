@@ -1,16 +1,18 @@
 import pygame
 from abc import ABC, abstractmethod
 from projectile import Projectile
+import game
 
 class BaseAttack(ABC):
-    def __init__(self, settings, owner):
+    def __init__(self, settings, owner, game):
         self.settings = settings
+        self.game = game
         self.owner = owner
         self.cooldown = 0
         self.last_attack_time = 0
 
     @abstractmethod
-    def update(self, delta_time):
+    def update(self):
         pass
 
     @abstractmethod
@@ -30,15 +32,17 @@ class BaseAttack(ABC):
         pass
 
 class FireballAttack(BaseAttack):
-    def __init__(self, settings, owner, enemy_manager):
-        super().__init__(settings, owner)
+    def __init__(self, settings, owner, enemy_manager,game):
+        super().__init__(settings, owner, game)
         self.cooldown = 1000  # 1 segundo de cooldown
+        self.damage = 20
+        self.game = game
         self.projectiles = []
         self.enemy_manager = enemy_manager  # Referencia al EnemyManager
 
-    def update(self, delta_time):
+    def update(self):
         for projectile in self.projectiles[:]:
-            if projectile.update(delta_time, self.owner, self.enemy_manager):
+            if projectile.update(self.owner, self.enemy_manager):
                 self.projectiles.remove(projectile)
 
     def draw(self, screen, camera_x, camera_y):
@@ -48,7 +52,20 @@ class FireballAttack(BaseAttack):
     def perform_attack(self):
         closest_enemy = self.find_closest_enemy()
         if closest_enemy:
-            projectile = Projectile(self.settings, self.owner.animation_manager, self.owner.rect.center, closest_enemy.rect.center, 20, 300, 'enemy', 'fireball_idle')
+            start_pos = pygame.Vector2(self.owner.rect.center)
+            target_pos = pygame.Vector2(closest_enemy.rect.center)
+            
+            projectile = Projectile(
+                self.settings,
+                self.owner.animation_manager,
+                start_pos,
+                target_pos,
+                self.damage,
+                300,
+                'enemy',
+                'fireball_idle',
+                self.game
+            )
             self.projectiles.append(projectile)
 
     def find_closest_enemy(self):
