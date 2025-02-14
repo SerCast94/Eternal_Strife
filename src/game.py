@@ -163,12 +163,9 @@ class Game:
                 self.clock.tick(self.settings.FPS)
                 
                 if self.game_state.is_game_over:
-<<<<<<< Updated upstream
                     game_over_screen = GameOverScreen(self.screen, self.game_state, self.player.score,self.player.level,self)
-=======
                     self.music_player.play_once("game_over",False)
                     game_over_screen = GameOverScreen(self.screen, self.game_state, self.player.score)
->>>>>>> Stashed changes
                     game_over_screen.run()
                         
         except Exception as e:
