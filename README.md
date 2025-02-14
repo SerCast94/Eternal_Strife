@@ -33,6 +33,8 @@
 -   **Biblioteca Gráfica**: PyGame.
 -   **Manejo de Sonido**: PyGame.mixer.
 -   **Control de Versiones**: Git
+-   **Manejo de datos y gráficas**: Matplotlib
+-   **Manejo de imágenes**: Manejo de imágenes
 
 ## Librerías
 

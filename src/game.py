@@ -30,7 +30,7 @@ class Game:
         self.delta_time = 0
         
 
-        
+    
         self.debug_info = {
             "fps": 0,
             "enemy_calc_time": 0,
@@ -38,11 +38,13 @@ class Game:
             "god_mode": False,
             # Añadir nuevas métricas
             "enemy_count": 0,
+            "spawn_rate": 0,
             "collision_time": 0,
             "pathfinding_time": 0,
             "enemy_render_time": 0,
             "spatial_grid_time": 0
         }
+
         self.debug_font = pygame.font.SysFont(None, 24)
 
         # Generate stars for loading screen
@@ -250,6 +252,9 @@ class Game:
             f"Enemy Calc Time: {self.debug_info['enemy_calc_time']:.2f}ms",
             f"Frame Time: {self.debug_info['frame_time']:.2f}ms",
             f"Enemy Count: {self.debug_info['enemy_count']}",
+            f"Spawn Rate: {self.debug_info['spawn_rate']:.2f}",
+            f"Escala Vida enemigos: {self.enemy_manager.health_scale:.2f}",
+            f"Escala Damage enemigos: {self.enemy_manager.damage_scale:.2f}",
             f"Spatial Grid Time: {self.debug_info['spatial_grid_time']:.2f}ms",
             f"Pathfinding Time: {self.debug_info['pathfinding_time']:.2f}ms",
             f"Current level {self.player.level}",
@@ -270,7 +275,7 @@ class Game:
         y_offset = 40
         for text in debug_text:
             text_surface = self.debug_font.render(text, True, (255, 255, 255))
-            self.render_surface.blit(text_surface, (570, y_offset))
+            self.render_surface.blit(text_surface, (10, y_offset))
             y_offset += 20
 
     def draw(self):

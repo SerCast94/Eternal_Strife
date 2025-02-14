@@ -14,6 +14,7 @@ class BaseEnemy(AnimatedSprite):
         self.detection_radius = enemy_data['detection_radius']
         self.collision_radius = max(enemy_data['size'][0], enemy_data['size'][1]) * 0.4
         self.enemy_data = enemy_data  # Asegúrate de que enemy_data esté definido
+        self.debug_font = pygame.font.Font(None, 20)
 
         # Cache valores calculados frecuentemente
         self._collision_rect = pygame.Rect(0, 0, self.collision_radius*2, self.collision_radius*2)
@@ -60,5 +61,27 @@ class BaseEnemy(AnimatedSprite):
         return self.health <= 0
         
     def draw(self, screen, camera_x, camera_y):
-        """Dibuja el enemigo en la pantalla teniendo en cuenta la posición de la cámara"""
+        """Dibuja el enemigo y su información de debug si está activado"""
         super().draw(screen, camera_x, camera_y)
+        
+        # Si el juego está en modo debug, mostrar vida y daño
+        if self.game.debug_mode:
+            # Crear fuente pequeña para el texto
+            
+            # Renderizar texto de vida y daño
+            health_text = self.debug_font.render(f"HP:{self.health:.0f}", True, (255, 0, 0))
+            damage_text = self.debug_font.render(f"DMG:{self.damage:.1f}", True, (255, 165, 0))
+            
+            # Calcular posiciones ajustadas a la cámara y el zoom
+            health_pos = (
+                (self.rect.centerx - health_text.get_width()/2) * self.settings.zoom - camera_x * self.settings.zoom,
+                (self.rect.top - 20) * self.settings.zoom - camera_y * self.settings.zoom
+            )
+            damage_pos = (
+                (self.rect.centerx - damage_text.get_width()/2) * self.settings.zoom - camera_x * self.settings.zoom,
+                (self.rect.top - 5) * self.settings.zoom - camera_y * self.settings.zoom
+            )
+            
+            # Dibujar textos
+            screen.blit(health_text, health_pos)
+            screen.blit(damage_text, damage_pos)
