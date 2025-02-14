@@ -33,3 +33,10 @@
 -   **Biblioteca Gráfica**: PyGame.
 -   **Manejo de Sonido**: PyGame.mixer.
 -   **Control de Versiones**: Git
+
+## Librerías
+
+Mientras implementamos un sistema de instalación automatico de librerías, ahora mismo necesitan ser instaladas manualmente.:
+```bash
+pip install pygame matplotlib pillow
+```
