@@ -19,6 +19,19 @@ class EnemyManager:
         self.time_elapsed = 0
         self.spawn_rate = self.settings.enemy_spawn_rate
         self.multiplicadorRatioSpawn = 1
+
+        self.difficulty_multiplier = 1.0  # Factor base de dificultad
+        self.health_scale = 1.0  # Escala de vida
+        self.damage_scale = 1.0  # Escala de daño
+
+        # Debug info
+        self.debug_info = {
+            "difficulty": 1.0,
+            "spawn_rate": self.spawn_rate,
+            "health_multiplier": 1.0,
+            "damage_multiplier": 1.0
+        }
+
         
         # Rejilla espacial para optimización de colisiones
         self.cell_size = 64
@@ -89,17 +102,35 @@ class EnemyManager:
             self.settings.map_height * self.settings.tile_size - self.settings.enemy_size[1]))
 
         enemy_class = self._get_random_enemy_type()
-        enemy = enemy_class(self.settings, (spawn_x, spawn_y), self.animation_manager, self,self.game)
+        enemy = enemy_class(self.settings, (spawn_x, spawn_y), self.animation_manager, self, self.game)
+        
+        # Aplicar escalado de estadísticas
+        enemy.health *= self.health_scale
+        enemy.damage *= self.damage_scale
+        
         self.enemies.append(enemy)
 
     def update(self, tilemap):
         if self.game.paused:
             return
         
-        # Actualizar temporizadores y tasa de spawn
+        # Actualizar temporizadores y factores de dificultad
         self.time_elapsed += self.game.delta_time
         self.spawn_timer += self.game.delta_time
-        self.spawn_rate = self.settings.enemy_spawn_rate + self.time_elapsed * 0.01 * self.multiplicadorRatioSpawn
+        
+        # Calcular factores de dificultad
+        self.difficulty_multiplier = 1.0 + (self.time_elapsed * 0.005)
+        self.spawn_rate = self.settings.enemy_spawn_rate * self.difficulty_multiplier * self.multiplicadorRatioSpawn
+        self.health_scale = 1.0 + (self.time_elapsed * 0.004)  # Incremento más lento que el spawn rate
+        self.damage_scale = 1.0 + (self.time_elapsed * 0.002)  # Incremento aún más lento
+        
+        # Actualizar información de debug
+        self.debug_info.update({
+            "difficulty": self.difficulty_multiplier,
+            "spawn_rate": self.spawn_rate,
+            "health_multiplier": self.health_scale,
+            "damage_multiplier": self.damage_scale
+        })
 
         # Generar nuevos enemigos
         if self.spawn_timer >= 1.0 / self.spawn_rate:
