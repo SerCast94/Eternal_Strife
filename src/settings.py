@@ -238,7 +238,7 @@ class Settings:
                 "frame_width": 32,
                 "frame_height": 32,
                 "frames": [
-                    {"index": i, "duration": 0.2} for i in range(30)
+                    {"index": i, "duration": 0.03} for i in range(30)
                 ]
             },
             "enemy_projectile_idle": {
@@ -246,7 +246,8 @@ class Settings:
                 "frame_width": 16,
                 "frame_height": 16,
                 "frames": [
-                    {"index": 0, "duration": 0.1},
+                    {"index": i, "duration": 0.01} for i in range(4)
+
                 ]
             }
         }

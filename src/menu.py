@@ -14,6 +14,12 @@ class Menu:
         self.start_game = False
         self.debug_mode = False  # Añadir un atributo para el modo de depuración
         self.music_player = music_player
+
+        volume_x = self.screen.get_width() - 120  # 120 = ancho del slider + margen
+        volume_y = self.screen.get_height() - 30  # 30 = margen desde abajo
+        self.volume_slider = VolumeSlider((volume_x, volume_y))
+        self.volume_slider.value = music_player.get_volume()
+
     
         # Load the GIF frames
         self.frames = []
@@ -73,9 +79,11 @@ class Menu:
     def run(self):
         running = True
         clock = pygame.time.Clock()
+        self.volume_slider.update_handle_position()
         self.music_player.change_playlist("menu")
         while running:
-            for event in pygame.event.get():
+            events = pygame.event.get()
+            for event in events:
                 if event.type == QUIT:
                     self.music_player.stop()
                     pygame.quit()
@@ -100,6 +108,9 @@ class Menu:
                 if self.exit_button.click(event):
                     pygame.quit()
                     sys.exit()
+
+            if self.volume_slider.update(events):
+                self.music_player.set_volume(self.volume_slider.value)
 
             # Draw background and animations
             self.screen.fill((0, 0, 0))
@@ -133,6 +144,8 @@ class Menu:
             # Mostrar botones adicionales
             self.high_scores_button.show(self.screen)
             self.exit_button.show(self.screen)
+
+            self.volume_slider.draw(self.screen)
 
             self.music_player.update()
             self.music_player.draw(self.screen)
@@ -185,3 +198,52 @@ class Button:
                 if self.rect.collidepoint(mouse_pos):
                     return True
         return False
+
+class VolumeSlider:
+    def __init__(self, pos, width=100, height=5):
+        self.rect = pygame.Rect(pos[0], pos[1], width, height)
+        self.handle_rect = pygame.Rect(pos[0], pos[1] - 5, 10, 15)
+        self.color = (100, 100, 100)
+        self.handle_color = (200, 200, 200)
+        self.active_color = (150, 150, 150)
+        self.value = 0.5  # Valor inicial (0.0 a 1.0)
+        self.dragging = False
+        self.font = pygame.font.Font("assets/fonts/EldringBold.ttf", 20)
+
+
+        self.update_handle_position()
+        
+    def update(self, events):
+        mouse_pos = pygame.mouse.get_pos()
+        
+        for event in events:
+            if event.type == MOUSEBUTTONDOWN:
+                if self.handle_rect.collidepoint(mouse_pos):
+                    self.dragging = True
+            elif event.type == MOUSEBUTTONUP:
+                self.dragging = False
+                
+        if self.dragging:
+            # Actualizar posición del control
+            new_x = min(max(mouse_pos[0], self.rect.left), self.rect.right - self.handle_rect.width)
+            self.handle_rect.x = new_x
+            # Calcular valor (0.0 a 1.0)
+            self.value = (new_x - self.rect.left) / (self.rect.width - self.handle_rect.width)
+            return True
+            
+        return False
+    
+    def update_handle_position(self):
+        """Actualiza la posición del control según el valor actual"""
+        new_x = self.rect.left + (self.rect.width - self.handle_rect.width) * self.value
+        self.handle_rect.x = new_x
+
+    def draw(self, screen):
+        # Dibujar barra
+        pygame.draw.rect(screen, self.color, self.rect)
+        # Dibujar control
+        pygame.draw.rect(screen, self.handle_color if not self.dragging else self.active_color, self.handle_rect)
+        # Dibujar ícono y valor - ahora a la izquierda del slider
+        volume_text = self.font.render(f"Volumen: ♪ {int(self.value * 100)}%", True, (255, 255, 255))
+        text_pos = (self.rect.left - volume_text.get_width() - 10, self.rect.top - 7)
+        screen.blit(volume_text, text_pos)
