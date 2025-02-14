@@ -219,8 +219,8 @@ class Settings:
             },
             "gem_idle": {
                 "spritesheet": "assets/images/item.png",
-                "frame_width": 16,
-                "frame_height": 16,
+                "frame_width": 32,
+                "frame_height": 32,
                 "frames": [
                     {"index": 0, "duration": 0.3},
                 ]
@@ -235,10 +235,10 @@ class Settings:
             },
             "fireball_idle": {
                 "spritesheet": "assets/images/player_attack.png",
-                "frame_width": 16,
-                "frame_height": 16,
+                "frame_width": 32,
+                "frame_height": 32,
                 "frames": [
-                    {"index": i, "duration": 0.1} for i in range(29)
+                    {"index": i, "duration": 0.2} for i in range(30)
                 ]
             },
             "enemy_projectile_idle": {

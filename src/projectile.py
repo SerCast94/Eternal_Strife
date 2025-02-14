@@ -5,7 +5,12 @@ import game
 class Projectile(SpriteObject):
     def __init__(self, settings, animation_manager, position, target_position, damage, speed, target_type, animation_name,game):
         image = animation_manager.get_animation(animation_name)[0][0]
-        super().__init__(image, position, (16, 16), settings, game)
+        if target_type == 'enemy':
+            size = (32,32)
+        else: 
+            size = (16,16)
+
+        super().__init__(image, position, size, settings, game)
         self.settings = settings
         self.target_position = pygame.Vector2(target_position)
         self.velocity = self.calculate_velocity(speed)
