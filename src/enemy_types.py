@@ -9,7 +9,7 @@ class SlimeEnemy(BaseEnemy):
             'size': (32, 32),
             'speed': 50,
             'health': 10,
-            'damage': 10,
+            'damage': 40,
             'scale': 1.0,
             'detection_radius': 100
         }

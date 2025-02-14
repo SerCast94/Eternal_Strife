@@ -307,7 +307,7 @@ class Game:
             # UI
             if self.debug_mode:
                 self.profiler.start("draw_ui")
-            self.ui_manager.draw(self.render_surface, self.player, self.game_state, self.enemy_manager)
+            self.ui_manager.draw(self.render_surface, self.player, self.game_state, self.enemy_manager,self)
             if self.debug_mode:
                 self.profiler.stop()
                 
