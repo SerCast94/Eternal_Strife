@@ -8,7 +8,7 @@ class SlimeEnemy(BaseEnemy):
             'idle_animation': 'slime_idle',
             'size': (32, 32),
             'speed': 50,
-            'health': 10,
+            'health': 30,
             'damage': 40,
             'scale': 1.0,
             'detection_radius': 100
