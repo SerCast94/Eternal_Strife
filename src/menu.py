@@ -6,13 +6,15 @@ from pygame.locals import *
 from PIL import Image
 import os
 from score import show_high_scores
+from music_player import MusicPlayer
 
 class Menu:
-    def __init__(self, screen):
+    def __init__(self, screen,music_player):
         self.screen = screen
         self.start_game = False
         self.debug_mode = False  # Añadir un atributo para el modo de depuración
-
+        self.music_player = music_player
+    
         # Load the GIF frames
         self.frames = []
         gif_path = 'assets/images/menu_background.gif'
@@ -66,12 +68,16 @@ class Menu:
         self.frame_delay = 70  # Tiempo en milisegundos entre frames
         self.last_frame_time = pygame.time.get_ticks()  # Tiempo inicial
 
+        
+
     def run(self):
         running = True
         clock = pygame.time.Clock()
+        self.music_player.change_playlist("menu")
         while running:
             for event in pygame.event.get():
                 if event.type == QUIT:
+                    self.music_player.stop()
                     pygame.quit()
                     sys.exit()
                 
@@ -127,6 +133,10 @@ class Menu:
             # Mostrar botones adicionales
             self.high_scores_button.show(self.screen)
             self.exit_button.show(self.screen)
+
+            self.music_player.update()
+            self.music_player.draw(self.screen)
+
 
             # Actualizar pantalla
             pygame.display.update()

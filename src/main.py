@@ -2,6 +2,7 @@ import pygame
 import sys
 from menu import Menu
 from game import Game
+from music_player import MusicPlayer
 
 class Main:
     def __init__(self):
@@ -10,7 +11,9 @@ class Main:
         pygame.display.set_caption("Eternal Strife")
         self.clock = pygame.time.Clock()
         self.running = True
-
+        self.music_player = MusicPlayer(self.screen)
+        self.music_player.set_volume(0.1)
+        
         # Optimizar PyGame
         pygame.display.set_mode((800, 600), pygame.HWSURFACE | pygame.DOUBLEBUF)
         pygame.event.set_allowed([pygame.QUIT, pygame.KEYDOWN, pygame.KEYUP])
@@ -21,10 +24,10 @@ class Main:
 
     def run(self):
         while self.running:
-            menu = Menu(self.screen)
+            menu = Menu(self.screen, self.music_player)
             menu.run()
             if menu.start_game:
-                game = Game(self.screen, debug_mode=menu.debug_mode)
+                game = Game(self.screen,self.music_player, debug_mode=menu.debug_mode)
                 game.run()
                 if game.game_state.is_game_over:
                     continue  # Volver al menú principal después de la pantalla de Game Over
