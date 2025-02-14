@@ -16,7 +16,6 @@ from game_over_screen import GameOverScreen
 import random
 
 class Game:
-    def __init__(self, screen, debug_mode=False):
         self.screen = screen
         self.settings = Settings()
         self.clock = pygame.time.Clock()
@@ -28,9 +27,7 @@ class Game:
         pygame.time.set_timer(self.game_timer, 1000 // self.settings.FPS)
         self.last_tick = pygame.time.get_ticks()
         self.delta_time = 0
-        
 
-    
         self.debug_info = {
             "fps": 0,
             "enemy_calc_time": 0,
@@ -91,9 +88,7 @@ class Game:
         self.log("UIManager inicializado")
 
         self.log("Juego inicializado correctamente")
-
-
-
+        
 
     def log(self, message):
         print(message)
@@ -163,6 +158,7 @@ class Game:
                 self.clock.tick(self.settings.FPS)
                 
                 if self.game_state.is_game_over:
+<<<<<<< Updated upstream
                     game_over_screen = GameOverScreen(self.screen, self.game_state, self.player.score,self.player.level,self)
                     game_over_screen.run()
                         
