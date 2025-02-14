@@ -8,6 +8,7 @@ from settings import Settings
 from player import Player
 from profiler import Profiler
 from level_up_screen import LevelUpScreen
+from music_player import MusicPlayer
 from tilemap import TileMap
 from enemy_manager import EnemyManager
 from ui_manager import UIManager
@@ -16,6 +17,7 @@ from game_over_screen import GameOverScreen
 import random
 
 class Game:
+    def __init__(self, screen,music_player,debug_mode=False):
         self.screen = screen
         self.settings = Settings()
         self.clock = pygame.time.Clock()
@@ -27,6 +29,7 @@ class Game:
         pygame.time.set_timer(self.game_timer, 1000 // self.settings.FPS)
         self.last_tick = pygame.time.get_ticks()
         self.delta_time = 0
+        self.music_player = music_player
 
         self.debug_info = {
             "fps": 0,
@@ -141,6 +144,8 @@ class Game:
         
     def run(self):
         try:
+            self.music_player.change_playlist("game")
+            self.music_player.play_random()
             while not self.game_state.is_game_over:
                 # Process all events first
                 if not self.handle_events():
@@ -160,6 +165,10 @@ class Game:
                 if self.game_state.is_game_over:
 <<<<<<< Updated upstream
                     game_over_screen = GameOverScreen(self.screen, self.game_state, self.player.score,self.player.level,self)
+=======
+                    self.music_player.play_once("game_over",False)
+                    game_over_screen = GameOverScreen(self.screen, self.game_state, self.player.score)
+>>>>>>> Stashed changes
                     game_over_screen.run()
                         
         except Exception as e:
@@ -318,6 +327,7 @@ class Game:
                 self.draw_debug_info()
                 self.profiler.stop()
 
+            self.music_player.draw(self.render_surface)
             # Escalado final y presentación
             if self.debug_mode:
                 self.profiler.start("draw_final")
@@ -338,6 +348,7 @@ class Game:
         try:
             # Hacer una copia del estado actual de la pantalla
             current_surface = self.screen.copy()
+            self.music_player.play_once("level_up",False)
             
             # Pausar el juego y detener el timer
             self.paused = True
@@ -370,7 +381,7 @@ class Game:
                 # Dibujar la ventana de level up
                 level_up_screen.draw()
                 pygame.display.flip()
-                
+                                
                 self.clock.tick(self.settings.FPS)
             
             # Restaurar el estado del juego
@@ -378,6 +389,8 @@ class Game:
             pygame.time.set_timer(self.game_timer, 1000 // self.settings.FPS)
             self.last_tick = pygame.time.get_ticks()  # Resetear el último tick
             self.animation_manager.resume()
+
+            self.music_player.restore_previous_state()
             
             # Restaurar velocidad del jugador
             keys = pygame.key.get_pressed()
@@ -385,6 +398,7 @@ class Game:
                 self.player.velocity.y = saved_velocity.y
             if not keys[pygame.K_a] and not keys[pygame.K_d]:
                 self.player.velocity.x = saved_velocity.x
+            
                 
         except Exception as e:
             print(f"Error en ventana de level up: {e}")
