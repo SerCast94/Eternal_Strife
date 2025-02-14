@@ -39,6 +39,7 @@ class FireballAttack(BaseAttack):
         self.game = game
         self.projectiles = []
         self.enemy_manager = enemy_manager  # Referencia al EnemyManager
+        self.detection_radius = 170
 
     def update(self):
         for projectile in self.projectiles[:]:
@@ -76,7 +77,7 @@ class FireballAttack(BaseAttack):
         for enemy in self.enemy_manager.enemies:
             enemy_pos = pygame.Vector2(enemy.rect.center)
             distance = player_pos.distance_to(enemy_pos)
-            if distance < min_distance:
+            if distance < min_distance and distance <= self.detection_radius:
                 min_distance = distance
                 closest_enemy = enemy
 
