@@ -1,3 +1,21 @@
+import subprocess
+import sys
+
+def install(package):
+    subprocess.check_call([sys.executable, "-m", "pip", "install", package])
+
+# Lista de dependencias necesarias
+dependencies = ["pygame", "matplotlib", "pillow"]
+
+# Verificar e instalar las dependencias
+for dependency in dependencies:
+    try:
+        __import__(dependency)
+        print(f"{dependency} ya está instalado.")
+    except ImportError:
+        print(f"{dependency} no está instalado. Instalando...")
+        install(dependency)
+        
 import pygame
 import sys
 from screens.menu import Menu
