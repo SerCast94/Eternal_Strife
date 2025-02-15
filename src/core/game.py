@@ -3,17 +3,17 @@
 import pygame
 import sys
 import threading
-from game_state import GameState
-from settings import Settings
-from player import Player
-from profiler import Profiler
-from level_up_screen import LevelUpScreen
-from music_player import MusicPlayer
-from tilemap import TileMap
-from enemy_manager import EnemyManager
-from ui_manager import UIManager
-from animation_manager import AnimationManager
-from game_over_screen import GameOverScreen
+from core.game_state import GameState
+from core.settings import Settings
+from entities.player import Player
+from utils.profiler import Profiler
+from screens.level_up_screen import LevelUpScreen
+from managers.music_player import MusicPlayer
+from world.tilemap import TileMap
+from managers.enemy_manager import EnemyManager
+from managers.ui_manager import UIManager
+from managers.animation_manager import AnimationManager
+from screens.game_over_screen import GameOverScreen
 import random
 
 class Game:
@@ -163,9 +163,11 @@ class Game:
                 self.clock.tick(self.settings.FPS)
                 
                 if self.game_state.is_game_over:
+                    current_volume = self.music_player.get_volume()
                     game_over_screen = GameOverScreen(self.screen, self.game_state, self.player.score,self.player.level,self)
+                    self.music_player.set_volume(0.7)
                     self.music_player.play_once("game_over",False)
-                    game_over_screen = GameOverScreen(self.screen, self.game_state, self.player.score)
+                    game_over_screen = GameOverScreen(self.screen, self.game_state, self.player.score,self.player.level,self)
                     game_over_screen.run()
                         
         except Exception as e:
@@ -229,16 +231,25 @@ class Game:
             self.tilemap = TileMap(self.settings)
             self.tilemap.generate()
             self.log("Mapa regenerado")
+
+            # Reiniciar EnemyManager primero (sin el jugador por ahora)
+            self.log("Reiniciando EnemyManager...")
+            self.enemy_manager = EnemyManager(self.settings, None, self.animation_manager, self.tilemap, self)
+            self.log("EnemyManager reiniciado")
             
-            # Reiniciar jugador
+            # Reiniciar jugador con la referencia al nuevo EnemyManager
             self.log("Reiniciando jugador...")
-            self.player = Player(self.settings, self.animation_manager, self.enemy_manager)
+            self.player = Player(self.settings, self.animation_manager, self.enemy_manager, self)
             self.log("Jugador reiniciado")
             
-            # Reiniciar enemigos
-            self.log("Reiniciando EnemyManager...")
-            self.enemy_manager = EnemyManager(self.settings, self.player, self.animation_manager, self.tilemap)
-            self.log("EnemyManager reiniciado")
+            # Actualizar la referencia al jugador en el EnemyManager
+            self.enemy_manager.player = self.player
+            
+            # Reiniciar estado del juego
+            self.game_state.is_game_over = False
+            self.game_time = 0
+            self.delta_time = 0
+            self.last_tick = pygame.time.get_ticks()
             
             self.log("Componentes del juego reiniciados correctamente")
         except Exception as e:

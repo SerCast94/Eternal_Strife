@@ -1,10 +1,10 @@
 Section,Total Time (s),Average Time (s),Call Count
-update_animation_manager,0,0.0,60
-enemy_management,7,0.11666666666666667,60
-draw_clear_surface,8,0.13333333333333333,60
-draw_background,149,2.4833333333333334,60
-draw_entities,1,0.016666666666666666,60
-draw_overlay,66,1.1,60
-draw_ui,7,0.11666666666666667,60
-draw_debug,21,0.35,60
-draw_final,80,1.3333333333333333,60
+update_animation_manager,0,0.0,1168
+enemy_management,232,2.32,1168
+draw_clear_surface,7,0.07,1168
+draw_background,227,2.27,1168
+draw_entities,34,0.34,1168
+draw_overlay,146,1.46,1168
+draw_ui,2,0.02,1168
+draw_debug,29,0.29,1168
+draw_final,125,1.25,1168

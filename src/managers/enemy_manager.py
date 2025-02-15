@@ -1,9 +1,9 @@
 import pygame
 import random
 import math
-from enemy_types import SlimeEnemy, RangedEnemy
-from item import Item, Gem, Tuna
-from projectile import Projectile
+from entities.enemy_types import SlimeEnemy, RangedEnemy
+from entities.item import Item, Gem, Tuna
+from attacks.projectile import Projectile
 
 class EnemyManager:
     def __init__(self, settings, player, animation_manager, tilemap, game):

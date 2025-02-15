@@ -1,5 +1,5 @@
 import pygame
-from sprite_object import SpriteObject
+from entities.sprite_object import SpriteObject
 
 class Item(SpriteObject):
     def __init__(self, settings, animation_manager, animation_name, position, size,game):

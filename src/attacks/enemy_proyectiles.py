@@ -1,5 +1,5 @@
 import pygame
-from sprite_object import SpriteObject
+from src.entities.sprite_object import SpriteObject
 
 class EnemyProjectile(SpriteObject):
     def __init__(self, settings, animation_manager, position, target_position,game, damage=10, speed=100):

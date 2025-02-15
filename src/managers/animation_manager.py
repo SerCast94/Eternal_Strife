@@ -1,6 +1,6 @@
 import pygame
 import os
-from sprite_object import SpriteObject
+from entities.sprite_object import SpriteObject
 
 class AnimationManager:
     def __init__(self, settings, game):

@@ -1,4 +1,4 @@
-from animation_manager import AnimatedSprite
+from managers.animation_manager import AnimatedSprite
 import pygame
 from abc import ABC, abstractmethod
 

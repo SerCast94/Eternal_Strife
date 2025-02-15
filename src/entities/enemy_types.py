@@ -1,6 +1,6 @@
 import pygame
-from base_enemy import BaseEnemy
-from projectile import Projectile
+from entities.base_enemy import BaseEnemy
+from attacks.projectile import Projectile
 
 class SlimeEnemy(BaseEnemy):
     def __init__(self, settings, position, animation_manager, enemy_manager,game):

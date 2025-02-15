@@ -1,7 +1,7 @@
 import pygame
 from abc import ABC, abstractmethod
-from projectile import Projectile
-import game
+from attacks.projectile import Projectile
+import core.game as game
 
 class BaseAttack(ABC):
     def __init__(self, settings, owner, game):

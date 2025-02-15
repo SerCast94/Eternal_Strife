@@ -1,7 +1,7 @@
 import pygame
-from sprite_object import SpriteObject
-import game
-from animation_manager import AnimatedSprite
+from entities.sprite_object import SpriteObject
+import core.game as game
+from managers.animation_manager import AnimatedSprite
 
 class Projectile(AnimatedSprite):
     def __init__(self, settings, animation_manager, position, target_position, damage, speed, target_type, animation_name, game):

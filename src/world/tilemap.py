@@ -2,7 +2,7 @@ import pygame
 import random
 from dataclasses import dataclass
 from typing import List, Dict, Optional, Tuple
-from pattern import Pattern
+from world.pattern import Pattern
 
 @dataclass
 class TilesetInfo:

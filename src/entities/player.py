@@ -1,7 +1,7 @@
 import pygame
-from animation_manager import AnimatedSprite
-from attacks import FireballAttack
-from item import Gem, Tuna
+from managers.animation_manager import AnimatedSprite
+from attacks.attacks import FireballAttack
+from entities.item import Gem, Tuna
 
 class Player(AnimatedSprite):
     def __init__(self, settings, animation_manager, enemy_manager, game):

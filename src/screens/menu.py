@@ -5,8 +5,8 @@ import colorsys
 from pygame.locals import *
 from PIL import Image
 import os
-from score import show_high_scores
-from music_player import MusicPlayer
+from screens.score import show_high_scores
+from managers.music_player import MusicPlayer
 
 class Menu:
     def __init__(self, screen,music_player):
@@ -20,6 +20,8 @@ class Menu:
         self.volume_slider = VolumeSlider((volume_x, volume_y))
         self.volume_slider.value = music_player.get_volume()
 
+        # Guardar el volumen original del menú
+        self.original_menu_volume = music_player.get_volume()
     
         # Load the GIF frames
         self.frames = []
@@ -79,6 +81,9 @@ class Menu:
     def run(self):
         running = True
         clock = pygame.time.Clock()
+        # Restaurar volumen original al inicio del menú
+        self.music_player.set_volume(self.original_menu_volume)
+        self.volume_slider.value = self.original_menu_volume
         self.volume_slider.update_handle_position()
         self.music_player.change_playlist("menu")
         while running:

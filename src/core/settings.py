@@ -57,7 +57,7 @@ class Settings:
         self.zoom = 2  # Factor de zoom inicial
 
         # Ruta base del proyecto
-        self.base_path = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+        self.base_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..",".."))
 
         # Configuración de las etapas de generación del mapa
         self.generation_stages = [

@@ -4,20 +4,22 @@ class UIManager:
     def __init__(self, settings):
         self.settings = settings
         self.font = pygame.font.Font(None, 36)
-        # Barra de vida
-        self.health_bar_width = 50  # Reduced size
-        self.health_bar_height = 5  # Reduced size
-        # Calculate center position for both width and height
-        self.health_bar_x = self.settings.screen_width // 2 - self.health_bar_width // 2
-        self.health_bar_y = self.settings.screen_height // 2 - self.health_bar_height // 2 - 25
-    def draw(self, screen, player, game_state, enemy_manager,game):
+        # Reducir dimensiones de la barra de vida
+        self.health_bar_width = 30  # Reducido de 50 a 30
+        self.health_bar_height = 3  # Reducido de 5 a 3
+
+    def draw(self, screen, player, game_state, enemy_manager, game):
+        # Ajustar posición vertical para que esté más cerca del jugador
+        health_bar_x = (player.rect.centerx - self.health_bar_width/2) * self.settings.zoom - game.tilemap.camera_x * self.settings.zoom
+        health_bar_y = (player.rect.top - 8) * self.settings.zoom - game.tilemap.camera_y * self.settings.zoom
         
         health_percentage = max(0, player.health / player.max_health)
         
+        # Dibujar barra de vida con dimensiones actualizadas
         pygame.draw.rect(screen, (255, 0, 0),
-            (self.health_bar_x, self.health_bar_y, self.health_bar_width, self.health_bar_height))
+            (health_bar_x, health_bar_y, self.health_bar_width * self.settings.zoom, self.health_bar_height * self.settings.zoom))
         pygame.draw.rect(screen, (0, 255, 0),
-            (self.health_bar_x, self.health_bar_y, self.health_bar_width * health_percentage, self.health_bar_height))
+            (health_bar_x, health_bar_y, (self.health_bar_width * health_percentage) * self.settings.zoom, self.health_bar_height * self.settings.zoom))
 
         # Puntuación y tiempo
         # score_text = self.font.render(f"Puntuación: {player.score}", True, (255, 255, 255))

@@ -1,8 +1,8 @@
 import pygame
 import sys
-from menu import Menu
-from game import Game
-from music_player import MusicPlayer
+from screens.menu import Menu
+from core.game import Game
+from managers.music_player import MusicPlayer
 
 class Main:
     def __init__(self):
@@ -27,8 +27,12 @@ class Main:
             menu = Menu(self.screen, self.music_player)
             menu.run()
             if menu.start_game:
-                game = Game(self.screen,self.music_player, debug_mode=menu.debug_mode)
+                # Guardar volumen actual antes de iniciar el juego
+                game_volume = self.music_player.get_volume()
+                game = Game(self.screen, self.music_player, debug_mode=menu.debug_mode)
                 game.run()
+                # Restaurar volumen al volver al menú
+                self.music_player.set_volume(game_volume)
                 if game.game_state.is_game_over:
                     continue  # Volver al menú principal después de la pantalla de Game Over
             else:
