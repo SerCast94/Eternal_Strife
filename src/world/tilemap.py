@@ -37,6 +37,19 @@ class Tile:
 
 class TileMap:
     def __init__(self, settings):
+        """
+        Constructor del generador de mapas de tiles.
+        
+        Parámetros:
+        - settings: Configuraciones del juego
+        
+        Inicializa:
+        - Semilla aleatoria para generación
+        - Capas del mapa (base, media, patrones)
+        - Sistema de colisiones
+        - Cámara y caché
+        - Posición inicial del jugador
+        """
         try:
             print("Inicializando TileMap...")
             self.settings = settings
@@ -59,6 +72,17 @@ class TileMap:
             raise
 
     def _create_stages(self) -> List[GenerationStage]:
+        """
+        Crea las etapas de generación del mapa desde la configuración.
+        
+        Procesa:
+        - Nombre de cada etapa
+        - Reglas de generación
+        - Configuración de tilesets
+        
+        Retorna:
+        - Lista de objetos GenerationStage
+        """
         try:
             print("Creando etapas de generación de TileMap...")
             stages = []
@@ -81,6 +105,15 @@ class TileMap:
             raise
 
     def _load_tileset(self, tileset_info: TilesetInfo) -> pygame.Surface:
+        """
+        Carga un tileset desde archivo.
+        
+        Parámetros:
+        - tileset_info: Información del tileset (ruta, tamaño, columnas, filas)
+        
+        Retorna:
+        - Superficie de pygame con el tileset cargado
+        """
         try:
             tileset = pygame.image.load(tileset_info.path).convert_alpha()
             return tileset
@@ -89,6 +122,17 @@ class TileMap:
             raise
 
     def _get_tile_from_tileset(self, tileset: pygame.Surface, tile_id: int, tileset_info: TilesetInfo) -> pygame.Surface:
+        """
+        Extrae un tile individual del tileset.
+        
+        Parámetros:
+        - tileset: Superficie con el tileset completo
+        - tile_id: ID del tile a extraer
+        - tileset_info: Información del tileset
+        
+        Retorna:
+        - Superficie con el tile individual
+        """
         tile_x = (tile_id % tileset_info.columns) * tileset_info.tile_size
         tile_y = (tile_id // tileset_info.columns) * tileset_info.tile_size
         
@@ -104,12 +148,32 @@ class TileMap:
         return tile_surface
     
     def _scale_tile(self, tile_surface: pygame.Surface) -> pygame.Surface:
+        """
+        Escala un tile según el zoom actual.
+        
+        Parámetros:
+        - tile_surface: Superficie del tile original
+        
+        Retorna:
+        - Tile escalado desde caché o nuevo
+        """
         if tile_surface not in self.scaled_tile_cache:
             scaled_tile_surface = pygame.transform.scale(tile_surface, (int(16 * self.settings.zoom), int(16 * self.settings.zoom)))
             self.scaled_tile_cache[tile_surface] = scaled_tile_surface
         return self.scaled_tile_cache[tile_surface]
 
     def _choose_tile(self, rule: GenerationRule) -> int:
+        """
+        Selecciona un tile aleatorio según las reglas de generación.
+        
+        Parámetros:
+        - rule: Regla de generación que contiene la configuración de tiles
+        
+        Retorna:
+        - ID del tile seleccionado basado en:
+        * Lista de tiles y sus pesos si están definidos
+        * Tile aleatorio del tileset si no hay lista específica
+        """
         if rule.tiles:
             tiles = [tile["tile"] for tile in rule.tiles]
             weights = [tile["weight"] for tile in rule.tiles]
@@ -118,11 +182,34 @@ class TileMap:
             return random.randint(0, rule.tileset.columns * rule.tileset.rows - 1)
 
     def _is_within_safe_radius(self, x, y):
+        """
+        Verifica si una posición está dentro del radio seguro alrededor del jugador.
+        
+        Parámetros:
+        - x: Coordenada X a verificar
+        - y: Coordenada Y a verificar
+        
+        Retorna:
+        - True si la posición está dentro del radio seguro
+        - False si está fuera
+        
+        Calcula la distancia euclidiana desde la posición inicial del jugador
+        """
         player_x, player_y = self.player_start_pos
         distance = ((x - player_x) ** 2 + (y - player_y) ** 2) ** 0.5
         return distance < self.safe_radius
 
     def generate(self):
+        """
+        Genera el mapa completo aplicando las reglas de generación.
+        
+        Proceso:
+        1. Inicializa semilla aleatoria
+        2. Aplica reglas por etapas
+        3. Genera capa base
+        4. Coloca patrones
+        5. Crea caché de la capa base
+        """
         try:
             print("Generando TileMap...")
             random.seed(self.seed)
@@ -170,6 +257,16 @@ class TileMap:
             raise
 
     def _place_pattern(self, rule, tileset, pos_x, pos_y):
+        """
+        Coloca un patrón en una posición específica.
+        
+        Parámetros:
+        - rule: Regla de generación
+        - tileset: Tileset a usar
+        - pos_x, pos_y: Posición donde colocar
+        
+        Gestiona colisiones y escalado
+        """
         if not rule.pattern:
             print(f"Error: La regla de generación de patrón no tiene un patrón definido: {rule}")
             return
@@ -198,6 +295,22 @@ class TileMap:
                     self.pattern_tiles.append(Tile(scaled_tile_surface, x, y, 1, False, True))
 
     def _place_random_pattern(self, rule, tileset):
+        """
+        Coloca patrones de forma aleatoria en el mapa.
+        
+        Parámetros:
+        - rule: Regla de generación que contiene el patrón
+        - tileset: Tileset a utilizar
+        
+        Proceso:
+        1. Calcula número de patrones basado en el tamaño del mapa y probabilidad
+        2. Para cada patrón:
+        - Elige posición aleatoria
+        - Verifica que no interfiera con zona segura
+        - Coloca el patrón si es seguro
+        - Registra el patrón generado
+        """
+
         if not rule.pattern:
             print(f"Error: La regla de generación de patrón aleatorio no tiene un patrón definido: {rule}")
             return
@@ -217,6 +330,16 @@ class TileMap:
             print(f"Patrón '{rule.tileset.path}' generado en posición {position}")
 
     def update_camera(self, player_x: float, player_y: float):
+            """
+            Actualiza la posición de la cámara.
+            
+            Parámetros:
+            - player_x, player_y: Posición del jugador
+            
+            Mantiene:
+            - Cámara centrada en jugador
+            - Límites del mapa
+            """
             # Centrar la cámara en el jugador teniendo en cuenta el factor de zoom
             self.camera_x = player_x - (self.settings.screen_width / self.settings.zoom) // 2
             self.camera_y = player_y - (self.settings.screen_height / self.settings.zoom) // 2
@@ -228,6 +351,16 @@ class TileMap:
                 self.settings.map_height * self.settings.tile_size - self.settings.screen_height / self.settings.zoom))
 
     def check_collision(self, rect: pygame.Rect) -> bool:
+        """
+        Verifica colisiones con tiles colisionables.
+        
+        Parámetros:
+        - rect: Rectángulo a verificar
+        
+        Retorna:
+        - True si hay colisión
+        - False si no hay colisión
+        """
         tile_x1 = max(0, rect.left // self.settings.tile_size)
         tile_x2 = min(self.settings.map_width - 1, rect.right // self.settings.tile_size)
         tile_y1 = max(0, rect.top // self.settings.tile_size)
@@ -301,5 +434,17 @@ class TileMap:
                 tile_y <= screen_y + self.settings.screen_height)
 
     def draw(self, screen: pygame.Surface, player_rect: pygame.Rect):
+        """
+        Dibuja todas las capas del mapa.
+        
+        Parámetros:
+        - screen: Superficie donde dibujar
+        - player_rect: Rectángulo del jugador
+        
+        Orden de capas:
+        1. Capa base
+        2. Capa media
+        3. Capa de superposición
+        """
         self.draw_base_layer(screen)
         self.draw_medium_and_overlay_layers(screen, player_rect)

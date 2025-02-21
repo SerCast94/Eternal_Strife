@@ -4,11 +4,28 @@ from attacks.projectile import Projectile
 
 class SlimeEnemy(BaseEnemy):
     def __init__(self, settings, position, animation_manager, enemy_manager,game):
+        """
+        Constructor del enemigo tipo Slime.
+        Parámetros:
+        - settings: Configuraciones generales del juego
+        - position: Posición inicial del enemigo
+        - animation_manager: Gestor de animaciones
+        - enemy_manager: Gestor de enemigos
+        - game: Referencia al objeto principal del juego
+        Inicializa las características específicas del Slime:
+        - Animación idle
+        - Tamaño: 32x32
+        - Velocidad: 55
+        - Salud: 10
+        - Daño: 40
+        - Escala: 1.0
+        - Radio de detección: 100
+        """
         enemy_data = {
             'idle_animation': 'slime_idle',
             'size': (32, 32),
-            'speed': 50,
-            'health': 30,
+            'speed': 55,
+            'health': 10,
             'damage': 40,
             'scale': 1.0,
             'detection_radius': 100
@@ -17,6 +34,16 @@ class SlimeEnemy(BaseEnemy):
         self.enemy_manager = enemy_manager
 
     def update_behavior(self, tilemap, player_pos):
+        """
+        Actualiza el comportamiento del Slime en cada frame.
+        Parámetros:
+        - tilemap: Mapa de tiles para verificar colisiones
+        - player_pos: Posición actual del jugador
+        Comportamiento:
+        - Persigue al jugador
+        - Evita obstáculos
+        - Actualiza posición considerando colisiones
+        """
         # Comportamiento básico del slime: perseguir al jugador y evitar obstáculos
         to_player = pygame.Vector2(player_pos) - pygame.Vector2(self.rect.center)
         if to_player.length() > 0:
@@ -43,6 +70,13 @@ class SlimeEnemy(BaseEnemy):
             self.move(old_position[0], old_position[1])
 
     def _detect_obstacles(self, tilemap):
+        """
+        Detecta obstáculos alrededor del Slime usando raycast.
+        Parámetros:
+        - tilemap: Mapa de tiles para verificar colisiones
+        Retorna:
+        - Vector de fuerza normalizado para evitar obstáculos
+        """
         directions = [
             pygame.Vector2(1, 0), pygame.Vector2(1, 1), pygame.Vector2(0, 1), pygame.Vector2(-1, 1),
             pygame.Vector2(-1, 0), pygame.Vector2(-1, -1), pygame.Vector2(0, -1), pygame.Vector2(1, -1)
@@ -63,6 +97,12 @@ class SlimeEnemy(BaseEnemy):
         return avoid_force.normalize() * self.settings.enemy_avoid_force if avoid_force.length() > 0 else avoid_force
 
     def _resolve_stuck(self, tilemap):
+        """
+        Intenta resolver situaciones donde el Slime queda atascado.
+        Parámetros:
+        - tilemap: Mapa de tiles para verificar colisiones
+        Prueba diferentes direcciones hasta encontrar una válida.
+        """
         # Intentar moverse en una dirección diferente si hay colisión
         directions = [
             pygame.Vector2(1, 0), pygame.Vector2(-1, 0), pygame.Vector2(0, 1), pygame.Vector2(0, -1)
@@ -76,11 +116,30 @@ class SlimeEnemy(BaseEnemy):
 
 class RangedEnemy(BaseEnemy):
     def __init__(self, settings, position, animation_manager, enemy_manager,game):
+        """
+        Constructor del enemigo a distancia.
+        Parámetros:
+        - settings: Configuraciones generales del juego
+        - position: Posición inicial del enemigo
+        - animation_manager: Gestor de animaciones
+        - enemy_manager: Gestor de enemigos
+        - game: Referencia al objeto principal del juego
+        Inicializa características específicas:
+        - Animación idle
+        - Tamaño: 32x32
+        - Velocidad: 50
+        - Salud: 30
+        - Daño: 10
+        - Velocidad de proyectil: 150
+        - Radio de detección: 300
+        - Radio de escape: 80
+        - Cooldown de ataque: 2.0 segundos
+        """
         enemy_data = {
             'idle_animation': 'ranged_idle',
             'size': (32, 32),
             'speed': 50,
-            'health': 100,
+            'health': 30,
             'damage': 10,
             'scale': 1.0,
             'projectile_speed': 150,
@@ -94,6 +153,17 @@ class RangedEnemy(BaseEnemy):
         self.projectiles = []  # Inicializar el atributo projectiles
 
     def update_behavior(self, tilemap, player_pos):
+        """
+        Actualiza el comportamiento del enemigo a distancia.
+        Parámetros:
+        - tilemap: Mapa de tiles para verificar colisiones
+        - player_pos: Posición actual del jugador
+        Comportamiento:
+        - Mantiene distancia del jugador
+        - Evita obstáculos
+        - Ataca cuando el jugador está en rango
+        - Gestiona cooldown de ataque
+        """
         # Comportamiento básico del enemigo a distancia: mantener distancia y atacar al jugador
         to_player = pygame.Vector2(player_pos) - pygame.Vector2(self.rect.center)
         distance_to_player = to_player.length()
@@ -135,6 +205,21 @@ class RangedEnemy(BaseEnemy):
             self.attack_timer = self.enemy_data['attack_cooldown']
 
     def _detect_obstacles(self, tilemap):
+        """
+        Detecta obstáculos alrededor del enemigo usando técnica de raycast.
+        Parámetros:
+        - tilemap: Mapa de tiles para verificar colisiones
+
+        Funcionamiento:
+        - Emite rayos en 8 direcciones diferentes (N, NE, E, SE, S, SO, O, NO)
+        - Para cada rayo, verifica colisiones a intervalos de 8 píxeles
+        - Si detecta una colisión, genera una fuerza de evasión inversamente proporcional a la distancia
+        - La fuerza es más fuerte cuanto más cerca esté el obstáculo
+
+        Retorna:
+        - Vector2 normalizado que representa la fuerza de evasión de obstáculos
+        - Si no hay obstáculos, retorna un vector nulo
+        """
         directions = [
             pygame.Vector2(1, 0), pygame.Vector2(1, 1), pygame.Vector2(0, 1), pygame.Vector2(-1, 1),
             pygame.Vector2(-1, 0), pygame.Vector2(-1, -1), pygame.Vector2(0, -1), pygame.Vector2(1, -1)
@@ -155,6 +240,17 @@ class RangedEnemy(BaseEnemy):
         return avoid_force.normalize() * self.settings.enemy_avoid_force if avoid_force.length() > 0 else avoid_force
 
     def _resolve_stuck(self, tilemap):
+        """
+        Intenta desatascar al enemigo cuando queda bloqueado por colisiones.
+        Parámetros:
+        - tilemap: Mapa de tiles para verificar colisiones
+
+        Funcionamiento:
+        - Prueba movimientos en 4 direcciones cardinales (derecha, izquierda, arriba, abajo)
+        - Para cada dirección, intenta un pequeño movimiento (10% de la velocidad normal)
+        - Se detiene en la primera dirección que no resulte en colisión
+        - Si ninguna dirección funciona, el enemigo permanecerá en su posición actual
+        """
         # Intentar moverse en una dirección diferente si hay colisión
         directions = [
             pygame.Vector2(1, 0), pygame.Vector2(-1, 0), pygame.Vector2(0, 1), pygame.Vector2(0, -1)
@@ -167,6 +263,12 @@ class RangedEnemy(BaseEnemy):
                 break
 
     def attack(self, player_pos):
+        """
+        Realiza un ataque a distancia hacia el jugador.
+        Parámetros:
+        - player_pos: Posición del jugador objetivo
+        Crea y añade un nuevo proyectil al gestor de enemigos.
+        """
         # Asegurarse de que player_pos sea un Vector2
         target_pos = pygame.Vector2(player_pos)
         start_pos = pygame.Vector2(self.rect.center)

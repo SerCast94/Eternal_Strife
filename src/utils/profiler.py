@@ -5,6 +5,18 @@ import pygame
 
 class Profiler:
     def __init__(self, max_samples=100):
+        """
+        Constructor del Profiler.
+        
+        Parámetros:
+        - max_samples: Número máximo de muestras a almacenar (por defecto 100)
+        
+        Inicializa:
+        - Diccionario de tiempos de inicio
+        - Cola circular para datos de cada sección
+        - Contadores de tiempo total
+        - Contadores de llamadas
+        """
         self.start_times = {}
         self.data = defaultdict(lambda: deque(maxlen=max_samples))
         self.total_times = defaultdict(float)
@@ -12,9 +24,25 @@ class Profiler:
         self.max_samples = max_samples
         
     def start(self, section):
+        """
+        Inicia el cronómetro para una sección específica.
+        
+        Parámetros:
+        - section: Nombre de la sección a medir
+        
+        Almacena el tiempo de inicio usando pygame.time.get_ticks()
+        """
         self.start_times[section] = pygame.time.get_ticks()
         
     def stop(self):
+        """
+        Detiene el cronómetro de la última sección iniciada.
+        
+        Calcula y almacena:
+        - Tiempo transcurrido
+        - Actualiza promedios
+        - Incrementa contador de llamadas
+        """
         current_section = list(self.start_times.keys())[-1]
         elapsed = pygame.time.get_ticks() - self.start_times[current_section]
         self.data[current_section].append(elapsed)
@@ -23,6 +51,15 @@ class Profiler:
         self.start_times.pop(current_section)
 
     def show_graphs(self):
+        """ 
+        Muestra gráficos de rendimiento en una ventana de matplotlib.
+        
+        Genera 4 gráficos:
+        1. Tiempos de renderizado (arriba izquierda)
+        2. Tiempos de lógica del juego (arriba derecha)
+        3. Detalles de enemigos (abajo izquierda)
+        4. Historial de frames (abajo derecha)
+        """
         # Create figure with subplots in 2x2 layout
         fig = plt.figure(figsize=(12, 8))
         gs = fig.add_gridspec(2, 2, hspace=0.5, wspace=0.4)
@@ -72,6 +109,15 @@ class Profiler:
         plt.show()
 
     def _add_value_labels(self, ax, bars):
+        """
+        Añade etiquetas de valor sobre las barras de un gráfico.
+        
+        Parámetros:
+        - ax: Eje del gráfico
+        - bars: Barras del gráfico
+        
+        Muestra el valor en milisegundos sobre cada barra
+        """
         for bar in bars:
             height = bar.get_height()
             ax.text(bar.get_x() + bar.get_width()/2., height,
@@ -80,6 +126,17 @@ class Profiler:
                 fontsize=7)
 
     def _plot_frame_history(self, ax):
+        """
+        Dibuja el historial de tiempos de frame.
+        
+        Parámetros:
+        - ax: Eje donde dibujar el gráfico
+        
+        Muestra:
+        - Línea de tiempo por frame
+        - Línea promedio
+        - Etiquetas y leyenda
+        """
         if 'draw_entities' in self.data:
             frames = list(self.data['draw_entities'])
             ax.plot(frames, label='Frame time')
@@ -94,11 +151,29 @@ class Profiler:
             ax.legend(fontsize=7)
 
     def get_average_time(self, section):
+        """
+        Calcula el tiempo promedio de una sección.
+        
+        Parámetros:
+        - section: Nombre de la sección
+        
+        Retorna:
+        - Tiempo promedio en milisegundos
+        - 0 si no hay datos para la sección
+        """
         if section in self.data and len(self.data[section]) > 0:
             return sum(self.data[section]) / len(self.data[section])
         return 0
 
     def export_data(self):
+        """
+        Exporta los datos de rendimiento a un archivo CSV.
+        
+        Formato del archivo:
+        - Columnas: Sección, Tiempo Total, Tiempo Promedio, Cantidad de Llamadas
+        - Tiempos en segundos
+        - Nombre del archivo: 'profiler_data.csv'
+        """
         with open('profiler_data.csv', 'w', newline='') as file:
             writer = csv.writer(file)
             writer.writerow(['Section', 'Total Time (s)', 'Average Time (s)', 'Call Count'])

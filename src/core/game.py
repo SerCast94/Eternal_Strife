@@ -18,6 +18,18 @@ import random
 
 class Game:
     def __init__(self, screen,music_player,debug_mode=False):
+        """
+        Constructor de la clase Game que inicializa el juego y todos sus componentes.
+        Parámetros:
+        - screen: Superficie de pygame donde se renderizará el juego
+        - music_player: Gestor de música del juego
+        - debug_mode: Modo de depuración (por defecto False)
+        Inicializa:
+        - Configuraciones básicas (settings, clock, debug)
+        - Sistema de tiempo y delta_time
+        - Gestores (animación, enemigos, UI)
+        - Jugador y mapa
+        """
         self.screen = screen
         self.settings = Settings()
         self.clock = pygame.time.Clock()
@@ -94,10 +106,20 @@ class Game:
         
 
     def log(self, message):
+        """
+        Registra mensajes en la consola y actualiza la pantalla de carga.
+        Parámetros:
+        - message: Mensaje a mostrar en la consola
+        """
         print(message)
         self.show_loading_screen()
 
     def show_loading_screen(self):
+        """
+        Muestra la pantalla de carga con animación de estrellas.
+        Renderiza el texto "Generando nivel..." y estrellas animadas
+        para dar feedback visual durante la carga.
+        """
         try:
             loading_font = pygame.font.SysFont(None, 48)
             loading_text = loading_font.render("Generando nivel...", True, (255, 255, 255))
@@ -114,6 +136,17 @@ class Game:
             print(f"Error mostrando la pantalla de carga: {e}")
 
     def handle_events(self):
+        """
+        Maneja los eventos de entrada del juego.
+        Procesa:
+        - Eventos de cierre de ventana
+        - Teclas de depuración (F1, F2, F3, H, L)
+        - Tecla de reinicio (R)
+        - Entrada del jugador
+        Retorna:
+        - True si el juego debe continuar
+        - False si el juego debe cerrarse
+        """
         try:
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
@@ -143,6 +176,16 @@ class Game:
             return False
         
     def run(self):
+        """
+        Bucle principal del juego.
+        Gestiona:
+        - Reproducción de música
+        - Bucle de eventos
+        - Actualización de estados
+        - Renderizado
+        - Control de FPS
+        - Pantalla de game over
+        """
         try:
             self.music_player.change_playlist("game")
             self.music_player.play_random()
@@ -177,6 +220,15 @@ class Game:
             self.log(f"Error en el bucle principal: {e}")
 
     def update(self):
+        """
+        Actualiza el estado del juego en cada frame.
+        Actualiza:
+        - Animaciones
+        - Estado del jugador
+        - Gestión de enemigos
+        - Cámara
+        - Información de depuración
+        """
         try:
             if self.paused:
                 return
@@ -221,6 +273,15 @@ class Game:
             self.log(f"Error actualizando el juego: {e}")
 
     def restart_game(self):
+        """
+        Reinicia todos los componentes del juego a su estado inicial.
+        Reinicia:
+        - Mapa
+        - Gestor de enemigos
+        - Jugador
+        - Estado del juego
+        - Temporizadores
+        """
         try:
             print("Reiniciando componentes del juego...")
             # Mostrar pantalla de carga
@@ -258,6 +319,9 @@ class Game:
     
             
     def draw_debug_info(self):
+        """
+        Dibuja información de depuración en la pantalla cuando el modo de depuración está activado.
+        """
         if not self.debug_mode:
             return
         debug_text = [
@@ -292,6 +356,16 @@ class Game:
             y_offset += 20
 
     def draw(self):
+        """
+        Renderiza todos los elementos del juego en la pantalla.
+        Dibuja en orden:
+        - Fondo y capas medias del mapa
+        - Entidades (jugador, enemigos, items)
+        - Capa de superposición del mapa
+        - Interfaz de usuario
+        - Información de depuración
+        - Reproductor de música
+        """
         try:
             if self.debug_mode:
                 self.profiler.start("draw_clear_surface")
@@ -347,12 +421,25 @@ class Game:
             self.log(f"Error dibujando el juego: {e}")
             
     def updatePlayer(self):
-        # Update player and check for level up
-            result = self.player.update(self.tilemap)
-            if result:
-                self.mostarVentanaLevelup()
-    
+        """
+        Actualiza el estado del jugador y verifica si ha subido de nivel.
+        Si el jugador sube de nivel, muestra la ventana de level up.
+        """
+    # Update player and check for level up
+        result = self.player.update(self.tilemap)
+        if result:
+            self.mostarVentanaLevelup()
+
     def mostarVentanaLevelup(self):
+        """
+        Muestra la ventana de selección de mejoras al subir de nivel.
+        Gestiona:
+        - Pausa del juego
+        - Efectos de sonido
+        - Interfaz de selección de mejoras
+        - Estado del jugador
+        - Restauración del estado del juego
+        """
         try:
             # Hacer una copia del estado actual de la pantalla
             current_surface = self.screen.copy()

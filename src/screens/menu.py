@@ -10,6 +10,22 @@ from managers.music_player import MusicPlayer
 
 class Menu:
     def __init__(self, screen,music_player):
+        """
+        Constructor del menú principal.
+        
+        Inicializa:
+        - Pantalla y estado del juego
+        - Control de volumen
+        - Animación de fondo (GIF)
+        - Imagen del título
+        - Sistema de estrellas
+        - Botones de interfaz
+        - Variables de control de animación
+        
+        Parámetros:
+        - screen: Superficie de pygame donde se dibuja el menú
+        - music_player: Gestor de música del juego
+        """
         self.screen = screen
         self.start_game = False
         self.debug_mode = False  # Añadir un atributo para el modo de depuración
@@ -79,6 +95,20 @@ class Menu:
         
 
     def run(self):
+        """
+        Ejecuta el bucle principal del menú.
+        
+        Gestiona:
+        - Eventos de entrada
+        - Actualización de estados
+        - Renderizado de elementos
+        - Control de música
+        - Animaciones de fondo
+        
+        Retorna:
+        - True si se inicia el juego
+        - False si se cierra la aplicación
+        """
         running = True
         clock = pygame.time.Clock()
         # Restaurar volumen original al inicio del menú
@@ -162,6 +192,17 @@ class Menu:
 
 class Button:
     def __init__(self, text, pos, font, bg="black", feedback="", is_rainbow=False):
+        """
+        Constructor de botón personalizado.
+        
+        Parámetros:
+        - text: Texto a mostrar en el botón
+        - pos: Tupla (x, y) con la posición
+        - font: Fuente a utilizar (opcional)
+        - bg: Color de fondo (por defecto "black")
+        - feedback: Texto de retroalimentación
+        - is_rainbow: Activa efecto arcoíris (por defecto False)
+        """
         self.x, self.y = pos
         self.font = pygame.font.Font("assets/fonts/EldringBold.ttf", 40)
         self.feedback = "text" if feedback == "" else feedback
@@ -170,6 +211,15 @@ class Button:
         self.change_text(text, bg)
 
     def change_text(self, text, bg="black"):
+        """
+        Actualiza el texto y apariencia del botón.
+
+        Parámetros:
+        - text: Nuevo texto a mostrar
+        - bg: Color de fondo (por defecto "black")
+
+        Si is_rainbow está activo, aplica color del ciclo arcoíris
+        """
         if self.is_rainbow:
             # Convertir HSV a RGB (hue 0-1, saturation 1, value 1)
             rgb = colorsys.hsv_to_rgb(self.hue, 1, 1)
@@ -186,17 +236,38 @@ class Button:
         self.rect = pygame.Rect(self.x, self.y, self.size[0], self.size[1])
 
     def update(self):
+        """
+        Actualiza el estado del botón.
+        Si tiene efecto arcoíris, actualiza el color cíclicamente.
+        """
         if self.is_rainbow:
             self.hue = (self.hue + 0.01) % 1.0
             self.change_text("Modo Debug")
 
     def show(self, screen):
+        """
+        Dibuja el botón en la pantalla.
+        
+        Parámetros:
+        - screen: Superficie donde dibujar
+        
+        Actualiza el efecto arcoíris si está activo
+        """
         if self.is_rainbow:
             self.update()
         screen.blit(self.surface, (self.x, self.y))
 
     def click(self, event):
-        """Comprueba si se ha hecho clic en el botón"""
+        """
+        Verifica si se ha hecho clic en el botón.
+
+        Parámetros:
+        - event: Evento de pygame a procesar
+
+        Retorna:
+        - True si se hizo clic izquierdo dentro del área del botón
+        - False en caso contrario
+        """
         if event.type == MOUSEBUTTONDOWN:
             if event.button == 1:  # Click izquierdo
                 mouse_pos = pygame.mouse.get_pos()
@@ -206,6 +277,19 @@ class Button:
 
 class VolumeSlider:
     def __init__(self, pos, width=100, height=5):
+        """
+        Constructor del control deslizante de volumen.
+
+        Parámetros:
+        - pos: Tupla (x, y) con la posición
+        - width: Ancho del control (por defecto 100)
+        - height: Alto del control (por defecto 5)
+
+        Inicializa:
+        - Rectángulos de barra y control
+        - Colores y estados
+        - Valor inicial (0.5)
+        """
         self.rect = pygame.Rect(pos[0], pos[1], width, height)
         self.handle_rect = pygame.Rect(pos[0], pos[1] - 5, 10, 15)
         self.color = (100, 100, 100)
@@ -219,6 +303,16 @@ class VolumeSlider:
         self.update_handle_position()
         
     def update(self, events):
+        """
+        Actualiza el estado del control según los eventos.
+        
+        Parámetros:
+        - events: Lista de eventos de pygame
+        
+        Retorna:
+        - True si el valor cambió
+        - False si no hubo cambios
+        """
         mouse_pos = pygame.mouse.get_pos()
         
         for event in events:
@@ -239,11 +333,25 @@ class VolumeSlider:
         return False
     
     def update_handle_position(self):
-        """Actualiza la posición del control según el valor actual"""
+        """
+        Actualiza la posición visual del control
+        según el valor actual (0.0 a 1.0)
+        """
         new_x = self.rect.left + (self.rect.width - self.handle_rect.width) * self.value
         self.handle_rect.x = new_x
 
     def draw(self, screen):
+        """
+        Dibuja el control deslizante completo.
+        
+        Parámetros:
+        - screen: Superficie donde dibujar
+        
+        Elementos:
+        - Barra de fondo
+        - Control deslizante
+        - Texto con porcentaje y símbolo musical
+        """
         # Dibujar barra
         pygame.draw.rect(screen, self.color, self.rect)
         # Dibujar control

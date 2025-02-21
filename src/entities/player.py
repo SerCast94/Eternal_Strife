@@ -5,6 +5,21 @@ from entities.item import Gem, Tuna
 
 class Player(AnimatedSprite):
     def __init__(self, settings, animation_manager, enemy_manager, game):
+        """
+        Constructor de la clase Player que inicializa un jugador.
+
+        Parámetros:
+        - settings: Configuraciones generales del juego
+        - animation_manager: Gestor de animaciones
+        - enemy_manager: Gestor de enemigos
+        - game: Referencia al objeto principal del juego
+
+        Inicializa:
+        - Posición inicial en el centro del mapa
+        - Atributos básicos (salud, velocidad, nivel)
+        - Estados y animaciones
+        - Sistema de ataques
+        """
         initial_pos = (settings.map_width * settings.tile_size // 2, 
                       settings.map_height * settings.tile_size // 2)
         super().__init__(animation_manager, 'player_idle', initial_pos, settings.player_size, settings,game)
@@ -43,9 +58,27 @@ class Player(AnimatedSprite):
         self.enemy_manager = enemy_manager
 
     def add_attack(self, attack):
+        """
+        Añade un nuevo ataque al inventario del jugador.
+        
+        Parámetros:
+        - attack: Objeto de ataque a añadir
+        """
         self.attacks.append(attack)
         
     def handle_input(self, event):
+        """
+        Maneja los eventos de entrada del teclado para el movimiento.
+        
+        Parámetros:
+        - event: Evento de pygame a procesar
+        
+        Controles:
+        - W: Movimiento hacia arriba
+        - S: Movimiento hacia abajo
+        - A: Movimiento hacia la izquierda
+        - D: Movimiento hacia la derecha
+        """
         if event.type == pygame.KEYDOWN: 
             if event.key == pygame.K_w:
                 self.velocity.y = -1
@@ -69,6 +102,22 @@ class Player(AnimatedSprite):
                 self.change_animation(self.animations["idle"])
                 
     def update(self, tilemap):
+        """
+        Actualiza el estado del jugador en cada frame.
+        
+        Parámetros:
+        - tilemap: Mapa de tiles para verificar colisiones
+        
+        Actualiza:
+        - Movimiento y colisiones
+        - Límites del mapa
+        - Ataques
+        - Recolección de ítems
+        
+        Retorna:
+        - True si el jugador sube de nivel
+        - False en caso contrario
+        """
         if self.game.paused:
             return False
         
@@ -107,17 +156,50 @@ class Player(AnimatedSprite):
         return self.collect_items(self.enemy_manager.items)
 
     def draw(self, screen, camera_x, camera_y):
+        """
+        Dibuja al jugador y sus ataques en la pantalla.
+        
+        Parámetros:
+        - screen: Superficie donde dibujar
+        - camera_x: Posición X de la cámara
+        - camera_y: Posición Y de la cámara
+        """
         super().draw(screen, camera_x, camera_y)
         for attack in self.attacks:
             attack.draw(screen, camera_x, camera_y)
             
     def level_up(self):
+        """
+        Gestiona la subida de nivel del jugador.
+        
+        Efectos:
+        - Incrementa el nivel actual
+        - Aumenta la experiencia necesaria para el siguiente nivel
+        - Reinicia el contador de experiencia actual
+        
+        Retorna:
+        - True para indicar que se realizó la subida de nivel
+        """
         self.level += 1
         self.exp_to_next_level = int(self.exp_to_next_level * self.exp_increase_rate)
         self.scoreToLevelUp = 0
         return True
             
     def collect_items(self, items):
+        """
+        Gestiona la recolección de ítems por colisión.
+        
+        Parámetros:
+        - items: Lista de ítems disponibles para recoger
+        
+        Efectos según el tipo de ítem:
+        - Gem: Aumenta score y experiencia
+        - Tuna: Restaura salud (20% del máximo)
+        
+        Retorna:
+        - True si el jugador sube de nivel al recoger ítems
+        - False en caso contrario
+        """
         level_up = False
         for item in items[:]:
             if self.hitbox.colliderect(item.rect):

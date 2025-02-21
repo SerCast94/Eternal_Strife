@@ -6,6 +6,22 @@ import random
 
 class GameOverScreen:
     def __init__(self, screen, game_state, score, level,game):
+        """
+        Constructor de la pantalla de Game Over.
+        
+        Parámetros:
+        - screen: Superficie principal de pygame
+        - game_state: Estado actual del juego
+        - score: Puntuación final del jugador
+        - level: Nivel alcanzado por el jugador
+        - game: Referencia al juego principal
+        
+        Inicializa:
+        - Sistema de entrada de texto
+        - Estrellas de fondo
+        - Botón de envío
+        - Fuentes y colores
+        """
         self.screen = screen
         self.game = game
         self.game_state = game_state
@@ -36,6 +52,17 @@ class GameOverScreen:
 
 
     def run(self):
+        """
+        Ejecuta el bucle principal de la pantalla de Game Over.
+        
+        Gestiona:
+        - Eventos de entrada (teclado y ratón)
+        - Activación del cuadro de texto
+        - Envío de puntuación
+        - Actualización de la pantalla
+        
+        Se ejecuta hasta que se envía la puntuación o se cierra el juego
+        """
         while not self.done:
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
@@ -65,6 +92,20 @@ class GameOverScreen:
             pygame.display.flip()
 
     def draw(self):
+        """
+        Renderiza todos los elementos de la pantalla de Game Over.
+        
+        Elementos:
+        - Fondo con estrellas animadas
+        - Texto "Has muerto" en rojo
+        - Campo de entrada para el nombre
+        - Botón de envío de puntuación
+        
+        Características:
+        - Estrellas con movimiento y brillo variable
+        - Texto centrado y escalado
+        - Cuadro de entrada con borde activo/inactivo
+        """
         for star in self.stars:
                 star[0] -= 0.008  # Cambia el valor 2 por la velocidad deseada
                 if star[0] < 0:
@@ -102,6 +143,20 @@ class GameOverScreen:
         self.screen.blit(self.button_text, self.button_rect)
 
     def save_score(self, name):
+        """
+        Guarda la puntuación en el archivo XML de puntuaciones.
+        
+        Parámetros:
+        - name: Nombre del jugador
+        
+        Guarda:
+        - Nombre del jugador
+        - Tiempo de juego (formato MM:SS)
+        - Puntuación numérica
+        - Nivel alcanzado
+        
+        Añade el nuevo registro al archivo score.xml
+        """
         tree = ET.parse('assets/score.xml')
         root = tree.getroot()
 

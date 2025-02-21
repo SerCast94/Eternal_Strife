@@ -5,6 +5,22 @@ import math
 
 class LevelUpScreen:
     def __init__(self, screen, player, settings, game):
+        """
+        Constructor de la pantalla de subida de nivel.
+
+        Parámetros:
+        - screen: Superficie principal de pygame
+        - player: Objeto jugador
+        - settings: Configuraciones del juego
+        - game: Referencia al juego principal
+
+        Inicializa:
+        - Superficie y dimensiones del popup
+        - Fuentes y textos
+        - Sistema de estrellas y partículas
+        - Opciones de mejora disponibles
+        """
+
         self.screen = screen
         self.game = game
         self.player = player
@@ -41,6 +57,19 @@ class LevelUpScreen:
         ]
         
     def create_explosion(self, x, y):
+        """
+        Crea una explosión de partículas en una posición específica.
+        
+        Parámetros:
+        - x: Posición X del centro de la explosión
+        - y: Posición Y del centro de la explosión
+        
+        Genera 8-12 partículas con:
+        - Dirección aleatoria
+        - Velocidad variable
+        - Color cambiante (HSV)
+        - Tiempo de vida limitado
+        """
         num_particles = random.randint(8, 12)
         for i in range(num_particles):
             angle = (i / num_particles) * 2 * math.pi
@@ -57,22 +86,45 @@ class LevelUpScreen:
             })
 
     def increase_max_health(self):
+        """
+        Aumenta la vida máxima del jugador en 20 puntos.
+        Ajusta la vida actual si supera el nuevo máximo.
+        """
         self.player.max_health += 20
         self.player.health = min(self.player.health, self.player.max_health)
 
     def increase_fire_rate(self):
+        """
+        Mejora la cadencia de disparo reduciendo el cooldown un 10%.
+        Aplica a todos los ataques del jugador.
+        """
         for attack in self.player.attacks:
             attack.cooldown *= 0.9  # Reduce cooldown by 10%
 
     def increase_damage(self):
+        """
+        Aumenta el daño de los ataques un 15%.
+        Aplica a todos los ataques del jugador.
+        """
         for attack in self.player.attacks:
             attack.damage *= 1.15  # Increase damage by 15%
 
     def heal(self):
+        """
+        Cura al jugador un 20% de su vida máxima.
+        No supera el límite de vida máxima.
+        """
         heal_amount = self.player.max_health * 0.2
         self.player.health = min(self.player.health + heal_amount, self.player.max_health)
 
     def draw_stats(self):
+        """
+        Dibuja las estadísticas actuales del jugador:
+        - Nivel actual
+        - Vida (actual/máxima)
+        - Daño base
+        - Cadencia de disparo (ataques/segundo)
+        """
         stats_text = [
             f"Nivel actual: {self.player.level}",
             f"Vida: {self.player.health:.0f}/{self.player.max_health}",
@@ -87,6 +139,16 @@ class LevelUpScreen:
             y += 30
 
     def handle_event(self, event):
+        """
+        Maneja los eventos de la pantalla de level up.
+        
+        Parámetros:
+        - event: Evento de pygame a procesar
+        
+        Retorna:
+        - True si se seleccionó una mejora
+        - False si no hubo interacción
+        """
         if event.type == pygame.MOUSEBUTTONDOWN:
             mouse_pos = pygame.mouse.get_pos()
             relative_pos = (mouse_pos[0] - self.popup_rect.x, 
@@ -101,6 +163,16 @@ class LevelUpScreen:
         return False
 
     def draw(self):
+        """
+        Renderiza la pantalla completa de level up.
+        
+        Elementos:
+        - Fondo negro con estrellas animadas
+        - Explosiones y partículas
+        - Borde del popup
+        - Título y estadísticas
+        - Botones de opciones de mejora
+        """
         """Dibuja la pantalla de level up"""
         # Dibujar fondo negro
         self.popup_surface.fill((0, 0, 0))
@@ -200,7 +272,17 @@ class LevelUpScreen:
         self.screen.blit(self.popup_surface, self.popup_rect)
 
     def run(self):
-        """Método opcional para ejecutar la pantalla de manera independiente (para pruebas)"""
+        """
+        Ejecuta el bucle principal de la pantalla de level up.
+        
+        Funcionalidad:
+        - Procesa eventos
+        - Pausa el juego principal
+        - Actualiza la visualización
+        - Espera selección de mejora
+        
+        Se usa principalmente para pruebas independientes.
+        """
         while not self.done:
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:

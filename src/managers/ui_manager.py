@@ -2,6 +2,17 @@ import pygame
 
 class UIManager:
     def __init__(self, settings):
+        """
+        Constructor del gestor de interfaz de usuario.
+        
+        Inicializa:
+        - Configuraciones generales
+        - Fuente para textos
+        - Dimensiones de la barra de vida (30x3 píxeles)
+        
+        Parámetros:
+        - settings: Configuraciones generales del juego
+        """
         self.settings = settings
         self.font = pygame.font.Font(None, 36)
         # Reducir dimensiones de la barra de vida
@@ -9,6 +20,25 @@ class UIManager:
         self.health_bar_height = 3  # Reducido de 5 a 3
 
     def draw(self, screen, player, game_state, enemy_manager, game):
+        """
+        Dibuja todos los elementos de la interfaz de usuario.
+        
+        Parámetros:
+        - screen: Superficie donde dibujar
+        - player: Objeto jugador para datos de vida y nivel
+        - game_state: Estado actual del juego
+        - enemy_manager: Gestor de enemigos para datos de dificultad
+        - game: Objeto principal del juego para tiempo y cámara
+        
+        Elementos que dibuja:
+        - Barra de vida sobre el jugador (rojo/verde)
+        - Tiempo de juego (esquina superior izquierda)
+        - Barra de progreso de nivel (inferior)
+            * Fondo gris
+            * Progreso con efecto arcoíris
+            * Nivel actual centrado
+        - Mensaje de GAME OVER (cuando corresponde)
+        """
         # Ajustar posición vertical para que esté más cerca del jugador
         health_bar_x = (player.rect.centerx - self.health_bar_width/2) * self.settings.zoom - game.tilemap.camera_x * self.settings.zoom
         health_bar_y = (player.rect.top - 8) * self.settings.zoom - game.tilemap.camera_y * self.settings.zoom
@@ -66,7 +96,19 @@ class UIManager:
                 self.settings.screen_height // 2 - game_over_text.get_height() // 2))
 
     def _hsv_to_rgb(self, h, s, v):
-        """Convierte color HSV a RGB"""
+        """
+        Convierte un color del espacio HSV a RGB.
+        
+        Parámetros:
+        - h: Matiz (0-1)
+        - s: Saturación (0-1)
+        - v: Valor (0-1)
+        
+        Retorna:
+        - Tupla (r, g, b) con valores RGB (0-255)
+        
+        Utilizado para crear el efecto arcoíris en la barra de nivel
+        """
         import colorsys
         r, g, b = colorsys.hsv_to_rgb(h, s, v)
         return (int(r * 255), int(g * 255), int(b * 255))

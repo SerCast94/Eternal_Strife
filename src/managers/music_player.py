@@ -7,7 +7,17 @@ import random
 class MusicPlayer:
     
     def __init__(self, screen):
+        """
+        Constructor del reproductor de música.
+        Inicializa:
+        - Sistema de audio de pygame
+        - Listas de reproducción (menú, juego, otros)
+        - Estados de reproducción
+        - Sistema de visualización de canciones
+        - Configuración de volumen
+        """
         pygame.mixer.init()
+        
         self.screen = screen
         self.current_song = None
         self.previous_state = None  # Añadir variable para guardar estado anterior
@@ -37,7 +47,13 @@ class MusicPlayer:
 
 
     def save_current_state(self):
-        """Guarda el estado actual de la playlist"""
+        """
+        Guarda el estado actual de la playlist.
+        Almacena:
+        - Canción actual
+        - Posición de reproducción en segundos
+        Solo guarda si hay música reproduciéndose.
+        """
         if pygame.mixer.music.get_busy():
             self.playlist_states[self.current_playlist].update({
                 "last_song": self.current_song,
@@ -45,7 +61,13 @@ class MusicPlayer:
             })
 
     def play_once(self, sound_name, reset_state=True):
-        """Reproduce un sonido de la lista 'others' una sola vez"""
+        """
+        Reproduce un sonido de la lista 'others' una sola vez.
+        Parámetros:
+        - sound_name: Nombre del sonido a reproducir
+        - reset_state: Si debe restaurar el estado anterior al terminar
+        Guarda el estado actual antes de reproducir.
+        """
         try:
             # Buscar el sonido en la lista others
             sound_file = None
@@ -73,7 +95,13 @@ class MusicPlayer:
             print(f"Error reproduciendo sonido {sound_name}: {e}")
 
     def restore_previous_state(self):
-        """Restaura el estado anterior guardado"""
+        """
+        Restaura el estado anterior guardado.
+        Recupera:
+        - Canción anterior
+        - Posición de reproducción
+        - Playlist actual
+        """
         if self.previous_state and self.previous_state["song"]:
             pygame.mixer.music.load(os.path.join(self.music_folder, self.previous_state["song"]))
             pygame.mixer.music.play(start=self.previous_state["position"])
@@ -82,7 +110,12 @@ class MusicPlayer:
 
 
     def restore_state(self, playlist_type):
-        """Restaura el estado guardado de una playlist"""
+        """
+        Restaura el estado guardado de una playlist específica.
+        Parámetros:
+        - playlist_type: Tipo de playlist a restaurar
+        Si no hay estado guardado, reproduce una canción aleatoria.
+        """
         state = self.playlist_states[playlist_type]
         if state["last_song"]:
             self.current_song = state["last_song"]
@@ -92,7 +125,12 @@ class MusicPlayer:
             self.play_random(playlist_type)
 
     def change_playlist(self, playlist_type):
-        """Cambia a una lista de reproducción específica manteniendo el estado"""
+        """
+        Cambia a una lista de reproducción específica.
+        Parámetros:
+        - playlist_type: Tipo de playlist a cambiar
+        Guarda el estado actual antes de cambiar.
+        """
         if playlist_type in self.playlists and self.current_playlist != playlist_type:
             # Guardar estado actual
             self.save_current_state()
@@ -110,7 +148,12 @@ class MusicPlayer:
 
 
     def play_random(self, playlist_type=None):
-        """Reproduce una canción aleatoria de la lista especificada"""
+        """
+        Reproduce una canción aleatoria de la lista especificada.
+        Parámetros:
+        - playlist_type: Tipo de playlist opcional
+        Evita repetir la última canción si hay más disponibles.
+        """
         if playlist_type:
             self.current_playlist = playlist_type
             
@@ -134,7 +177,13 @@ class MusicPlayer:
 
 
     def load_songs(self):
-        """Carga y clasifica las canciones en sus respectivas listas"""
+        """
+        Carga y clasifica las canciones en sus respectivas listas.
+        Clasifica según sufijos:
+        - _menu: Para menú
+        - _game: Para juego
+        - otros: Sin sufijo específico
+        """
         try:
             for file in os.listdir(self.music_folder):
                 if not file.endswith(('.mp3', '.wav', '.ogg')):
@@ -152,12 +201,22 @@ class MusicPlayer:
             print(f"Error cargando música: {e}")
 
     def update(self):
-        """Verifica si la canción terminó y reproduce la siguiente"""
+        """
+        Verifica si la canción terminó y reproduce la siguiente.
+        Se ejecuta en cada frame del juego.
+        """
         if not pygame.mixer.music.get_busy():
             self.play_random()
 
     def draw(self, screen):
-        """Dibuja el nombre de la canción actual con efecto de fundido"""
+        """
+        Dibuja el nombre de la canción actual con efecto de fundido.
+        Características:
+        - Muestra el título durante 3 segundos
+        - Aplica efecto de fundido el último segundo
+        - Ajusta el texto a un ancho máximo
+        - Muestra símbolo musical (♫)
+        """
         current_time = pygame.time.get_ticks()
         if not self.current_song:
             return
@@ -225,21 +284,35 @@ class MusicPlayer:
 
 
     def set_volume(self, volume):
-        """Ajusta el volumen (0.0 a 1.0)"""
+        """
+        Ajusta el volumen de reproducción.
+        Parámetros:
+        - volume: Valor entre 0.0 y 1.0
+        """
         pygame.mixer.music.set_volume(volume)
 
     def stop(self):
-        """Detiene la reproducción"""
+        """
+        Detiene la reproducción de música actual.
+        """
         pygame.mixer.music.stop()
 
     def pause(self):
-        """Pausa la reproducción"""
+        """
+        Pausa la reproducción de música actual.
+        """
         pygame.mixer.music.pause()
 
     def unpause(self):
-        """Reanuda la reproducción"""
+        """
+        Reanuda la reproducción de música pausada.
+        """
         pygame.mixer.music.unpause()
     
     def get_volume(self):
-        """Obtiene el volumen actual (0.0 a 1.0)"""
+        """
+        Obtiene el volumen actual de reproducción.
+        Retorna:
+        - Valor entre 0.0 y 1.0
+        """
         return pygame.mixer.music.get_volume()

@@ -24,6 +24,20 @@ for _ in range(num_stars):
 
 # Function to read scores from XML
 def read_scores_xml(file_path):
+    """
+    Lee y procesa las puntuaciones almacenadas en un archivo XML.
+    
+    Parámetros:
+    - file_path: Ruta al archivo XML que contiene las puntuaciones
+    
+    Retorna:
+    - Lista de diccionarios ordenada por puntuación (descendente)
+    Cada diccionario contiene:
+        - name: Nombre del jugador
+        - time: Tiempo de juego
+        - score_value: Puntuación numérica
+        - level: Nivel alcanzado
+    """
     tree = ET.parse(file_path)
     root = tree.getroot()
 
@@ -46,6 +60,16 @@ def read_scores_xml(file_path):
 
 # Button class
 class Button:
+    """
+    Constructor de botón personalizado.
+    
+    Parámetros:
+    - text: Texto a mostrar en el botón
+    - pos: Tupla (x, y) con la posición
+    - font: Fuente a utilizar
+    - bg: Color de fondo (por defecto "black")
+    - feedback: Texto alternativo para retroalimentación
+    """
     def __init__(self, text, pos, font, bg="black", feedback=""):
         self.x, self.y = pos
         self.font = pygame.font.Font("assets/fonts/EldringBold.ttf", 40)
@@ -56,6 +80,13 @@ class Button:
         self.change_text(text, bg)
 
     def change_text(self, text, bg="black"):
+        """
+        Actualiza el texto y la superficie del botón.
+        
+        Parámetros:
+        - text: Nuevo texto a mostrar
+        - bg: Color de fondo (por defecto "black")
+        """
         self.text = self.font.render(text, True, WHITE)
         self.size = self.text.get_size()
         self.surface = pygame.Surface(self.size)
@@ -64,9 +95,25 @@ class Button:
         self.rect = pygame.Rect(self.x, self.y, self.size[0], self.size[1])
 
     def show(self, screen):
+        """
+        Dibuja el botón en la pantalla.
+        
+        Parámetros:
+        - screen: Superficie donde dibujar el botón
+        """
         screen.blit(self.surface, (self.x, self.y))
 
     def click(self, event):
+        """
+        Verifica si se ha hecho clic en el botón.
+        
+        Parámetros:
+        - event: Evento de pygame a procesar
+        
+        Retorna:
+        - True si se hizo clic izquierdo dentro del área del botón
+        - False en caso contrario
+        """
         x, y = pygame.mouse.get_pos()
         if event.type == pygame.MOUSEBUTTONDOWN:
             if pygame.mouse.get_pressed()[0]:
@@ -75,6 +122,19 @@ class Button:
         return False
 
 def show_high_scores(screen):
+    """
+    Muestra la pantalla de puntuaciones altas.
+    
+    Parámetros:
+    - screen: Superficie principal de pygame
+    
+    Funcionalidad:
+    - Carga y muestra las puntuaciones desde XML
+    - Dibuja fondo animado con estrellas
+    - Muestra tabla con nombres, tiempos, puntos y niveles
+    - Incluye botón para volver al menú principal
+    - Limita la visualización a las 9 mejores puntuaciones
+    """
     # Load scores
     scores = read_scores_xml("assets/score.xml")
 
