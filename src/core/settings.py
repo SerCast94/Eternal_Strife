@@ -92,21 +92,6 @@ class Settings:
                 ]
             },
             {
-                "name": "props",
-                "rules": [
-                    {
-                        "type": "random",
-                        "tileset": {
-                            "path": os.path.join(self.base_path, "assets", "images", "tileset_props.png"),
-                            "tile_size": 32,
-                            "columns": 16,
-                            "rows": 16,
-                        },
-                        "chance": 0.01
-                    }
-                ]
-            },
-            {
         "name": "patterns",
         "rules": [
             {
@@ -124,7 +109,8 @@ class Settings:
                     [0, {"tile": 1, "collidable": True}, {"tile": 1, "collidable": True}, {"tile": 1, "collidable": True}, 0],
                     [0, 0, {"tile": 1, "collidable": True}, 0, 0]
                 ],
-                "position": (100, 100)
+                "position": (100, 100),
+                "chance": 1.0
             },
             {
                 "type": "pattern",
@@ -141,6 +127,86 @@ class Settings:
                     [0,{"tile": 74, "collidable": True}, 0]
                 ],
                 "chance": 0.01
+            },
+            {
+                "type": "pattern",
+                "tileset": {
+                    "path": os.path.join(self.base_path, "assets", "images", "tileset_props.png"),
+                    "tile_size": 32,
+                    "columns": 16,
+                    "rows": 16,
+                },
+                "pattern": [
+                    [{"tile": 208, "collidable": True}, {"tile": 209, "collidable": True}],
+                    [{"tile": 224, "collidable": True}, {"tile": 225, "collidable": True}]
+                ],
+                "chance": 0.001  # 1% de probabilidad de aparición
+            },
+            {
+                "type": "pattern",
+                "tileset": {
+                    "path": os.path.join(self.base_path, "assets", "images", "tileset_props.png"),
+                    "tile_size": 32,
+                    "columns": 16,
+                    "rows": 16,
+                },
+                "pattern": [
+                    [{"tile": 189, "collidable": True}, {"tile": 190, "collidable": True}],
+                    [{"tile": 205, "collidable": True}, {"tile": 206, "collidable": True}]
+                ],
+                "chance": 0.001  # 1% spawn chance
+            },
+             {
+                "type": "pattern",
+                "tileset": {
+                    "path": os.path.join(self.base_path, "assets", "images", "tileset_rocas.png"),
+                    "tile_size": 32,
+                    "columns": 2,
+                    "rows": 3,
+                },
+                "pattern": [
+                    [{"tile": 2, "collidable": True}]
+                ],
+                "chance": 0.001
+            },
+             {
+                "type": "pattern",
+                "tileset": {
+                    "path": os.path.join(self.base_path, "assets", "images", "tileset_rocas.png"),
+                    "tile_size": 32,
+                    "columns": 2,
+                    "rows": 3,
+                },
+                "pattern": [
+                    [{"tile": 3, "collidable": True}]
+                ],
+                "chance": 0.001
+            },
+             {
+                "type": "pattern",
+                "tileset": {
+                    "path": os.path.join(self.base_path, "assets", "images", "tileset_rocas.png"),
+                    "tile_size": 32,
+                    "columns": 2,
+                    "rows": 3,
+                },
+                "pattern": [
+                    [{"tile": 4, "collidable": True}]
+                ],
+                "chance": 0.001
+            },
+             {
+                "type": "pattern",
+                "tileset": {
+                    "path": os.path.join(self.base_path, "assets", "images", "tileset_rocas.png"),
+                    "tile_size": 32,
+                    "columns": 2,
+                    "rows": 3,
+                },
+                "pattern": [
+                    [{"tile": 5, "collidable": True}]
+                ],
+                "chance": 0.001
             }
         ]
     }

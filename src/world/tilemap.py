@@ -381,8 +381,18 @@ class TileMap:
 
 
     def draw_background_layers(self, screen):
+        """
+        Dibuja las capas de fondo y decoración del mapa.
+        
+        Parámetros:
+        - screen: Superficie donde dibujar
+        
+        Dibuja en orden:
+        1. Capa base (terreno)
+        2. Capa de decoración
+        """
         try:
-            # Calculate visible area
+            # Calcula el área visible
             start_x = max(0, int(self.camera_x // self.settings.tile_size))
             start_y = max(0, int(self.camera_y // self.settings.tile_size))
             end_x = min(self.settings.map_width, 
@@ -390,15 +400,35 @@ class TileMap:
             end_y = min(self.settings.map_height,
                     int((self.camera_y + self.settings.screen_height) // self.settings.tile_size + 1))
             
-            # Draw only visible tiles
+            # Dibuja la capa base
             for y in range(start_y, end_y):
                 for x in range(start_x, end_x):
                     if self.base_layer[y][x]:
                         screen_x = (x * self.settings.tile_size - self.camera_x) * self.settings.zoom
                         screen_y = (y * self.settings.tile_size - self.camera_y) * self.settings.zoom
                         screen.blit(self.base_layer[y][x], (screen_x, screen_y))
+            
+            # Dibuja solo la capa de decoración (excluyendo props)
+            visible_decorations = [
+                tile for tile in self.medium_layer 
+                if start_x <= tile.x < end_x and 
+                start_y <= tile.y < end_y and 
+                not tile.is_pattern  # Excluye los props
+            ]
+            
+            # Ordena por coordenada Y
+            visible_decorations.sort(key=lambda t: t.y)
+            
+            # Dibuja las decoraciones
+            for tile in visible_decorations:
+                screen_x = (tile.x * self.settings.tile_size - self.camera_x) * self.settings.zoom
+                screen_y = (tile.y * self.settings.tile_size - self.camera_y) * self.settings.zoom
+                screen.blit(tile.surface, (screen_x, screen_y))
+
         except Exception as e:
-            print(f"Error drawing background layers: {e}")
+            print(f"Error dibujando capas de fondo: {e}")
+
+
 
     def draw_overlay_layer(self, screen: pygame.Surface):
         """Dibuja la capa overlay con transparencia"""
@@ -432,19 +462,3 @@ class TileMap:
                 tile_x <= screen_x + self.settings.screen_width and
                 tile_y + self.settings.tile_size >= screen_y and
                 tile_y <= screen_y + self.settings.screen_height)
-
-    def draw(self, screen: pygame.Surface, player_rect: pygame.Rect):
-        """
-        Dibuja todas las capas del mapa.
-        
-        Parámetros:
-        - screen: Superficie donde dibujar
-        - player_rect: Rectángulo del jugador
-        
-        Orden de capas:
-        1. Capa base
-        2. Capa media
-        3. Capa de superposición
-        """
-        self.draw_base_layer(screen)
-        self.draw_medium_and_overlay_layers(screen, player_rect)
