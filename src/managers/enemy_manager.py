@@ -191,8 +191,8 @@ class EnemyManager:
         # Calcular factores de dificultad
         self.difficulty_multiplier = 1.0 + (self.time_elapsed * 0.01)
         self.spawn_rate = self.settings.enemy_spawn_rate * self.difficulty_multiplier * self.multiplicadorRatioSpawn
-        self.health_scale = 1.0 + (self.time_elapsed * 0.05)  # Incremento más lento que el spawn rate
-        self.damage_scale = 1.0 + (self.time_elapsed * 0.02)  # Incremento aún más lento
+        self.health_scale = 1.0 + (self.time_elapsed * 0.01)  # Mismo incremento que la dificultad
+        self.damage_scale = 1.0 + (self.time_elapsed * 0.08)  # Incremento más rapido
         
         # Actualizar información de debug
         self.debug_info.update({
@@ -257,10 +257,10 @@ class EnemyManager:
         - position: Posición donde generar el ítem
         
         Probabilidades:
-        - 99% Gema
-        - 1% Atún
+        - 98% Gema
+        - 2% Atún
         """
-        if random.random() < 0.99:
+        if random.random() < 0.98:
             item = Gem(self.settings, self.animation_manager, position,self.game)
         else:
             item = Tuna(self.settings, self.animation_manager, position,self.game)

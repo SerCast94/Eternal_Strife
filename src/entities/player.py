@@ -33,7 +33,7 @@ class Player(AnimatedSprite):
         self.is_player = True  # Atributo para identificar al jugador
         self.level = 1
         self.exp_to_next_level = 5
-        self.exp_increase_rate = 1.5 
+        self.exp_increase_rate = 1.2 
         
         # Movement state
         self.moving = False
@@ -210,7 +210,7 @@ class Player(AnimatedSprite):
                     if self.scoreToLevelUp >= self.exp_to_next_level:
                         level_up = self.level_up()
                 elif isinstance(item, Tuna):
-                    self.health = min(self.max_health, self.health + self.max_health * 0.2)
+                    self.health = min(self.max_health, self.health + self.max_health * 0.8)
                 items.remove(item)
         return level_up
     
